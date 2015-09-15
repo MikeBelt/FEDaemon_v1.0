@@ -5,7 +5,7 @@
     <client name="cloudAutorizarComprobante">
       <wsdl-url>http://tevcol.azurewebsites.net/Services/cloudAutorizarComprobante.svc?wsdl</wsdl-url>
       <local-wsdl-file>tevcol.azurewebsites.net/Services/cloudAutorizarComprobante.svc.wsdl</local-wsdl-file>
-      <package-name forceReplace="true">fedaemonfinal</package-name>
+      <package-name forceReplace="true">fedaemonfinal.infact</package-name>
       <catalog-file>catalog.xml</catalog-file>
       <wsimport-options>
         <wsimport-option>
@@ -34,7 +34,7 @@
         </wsimport-option>
         <wsimport-option>
           <wsimport-option-name>package</wsimport-option-name>
-          <wsimport-option-value>fedaemonfinal</wsimport-option-value>
+          <wsimport-option-value>fedaemonfinal.infact</wsimport-option-value>
         </wsimport-option>
       </wsimport-options>
     </client>

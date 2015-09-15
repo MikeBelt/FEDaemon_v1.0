@@ -1,26 +1,29 @@
 
 package fedaemonfinal.dao;
 
-import fedaemonfinal.ArrayOfDetAdicional;
-import fedaemonfinal.ArrayOfDetalle;
-import fedaemonfinal.ArrayOfImpuesto;
-import fedaemonfinal.ArrayOfInfoAdicional;
-import fedaemonfinal.ArrayOfTotalImpuesto;
-import fedaemonfinal.AutorizarFactura;
-import fedaemonfinal.util.ConexionBD;
-import fedaemonfinal.DetAdicional;
-import fedaemonfinal.Detalle;
-import fedaemonfinal.Impuesto;
-import fedaemonfinal.InfoAdicional;
-import fedaemonfinal.InfoFactura;
-import fedaemonfinal.util.InfoTrib;
-import fedaemonfinal.InfoTributaria;
-import fedaemonfinal.Response;
-import fedaemonfinal.TotalImpuesto;
+
 import fedaemonfinal.frms.frmMonitor;
+import fedaemonfinal.infact.ArrayOfDetAdicional;
+import fedaemonfinal.infact.ArrayOfDetalle;
+import fedaemonfinal.infact.ArrayOfImpuesto;
+import fedaemonfinal.infact.ArrayOfInfoAdicional;
+import fedaemonfinal.infact.ArrayOfTotalImpuesto;
+import fedaemonfinal.infact.AutorizarFactura;
+import fedaemonfinal.infact.CloudAutorizarComprobante;
+import fedaemonfinal.infact.DetAdicional;
+import fedaemonfinal.infact.Detalle;
+import fedaemonfinal.infact.IcloudAutorizarComprobante;
+import fedaemonfinal.infact.Impuesto;
+import fedaemonfinal.infact.InfoAdicional;
+import fedaemonfinal.infact.InfoFactura;
+import fedaemonfinal.infact.InfoTributaria;
+import fedaemonfinal.infact.ObjectFactory;
+import fedaemonfinal.infact.Response;
+import fedaemonfinal.infact.TotalImpuesto;
+import fedaemonfinal.util.ConexionBD;
+import fedaemonfinal.util.InfoTrib;
 import java.io.File;
 import java.math.BigDecimal;
-import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.CallableStatement;
@@ -29,7 +32,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import javax.xml.bind.JAXBContext;
@@ -93,8 +95,11 @@ public final class FacturaDAO {
     public int enviarFacturas(ConexionBD con)throws Exception{
 
         int enviadas=0;
+        ObjectFactory factory = new ObjectFactory();
         InfoTrib fra=null;
-        ArrayList<InfoTrib> arr=new ArrayList<>();
+        ArrayList<InfoTrib> arrayInfoTrib=new ArrayList<>();
+        ArrayList<AutorizarFactura> arrayAutorizarFactura=new ArrayList<>();
+        String marco="======================================================================";
         //OJO que al consultar data de la base se recuperará info como estaba hasta el ultimo COMMIT ejecutado
         String select="SELECT COUNT(*) LINEAS,TOTALSINIMPUESTOS,TOTALDESCUENTO,ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "FROM INVE_DOCUMENTOS_FE_DAT "
@@ -104,10 +109,10 @@ public final class FacturaDAO {
 //                + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'"
                 + "GROUP BY TOTALSINIMPUESTOS,TOTALDESCUENTO,ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "ORDER BY FECHAEMISION ASC";
-                
         Statement st= con.getCon().createStatement();
-        ResultSet rs=st.executeQuery(select);
-//        SimpleDateFormat f = new SimpleDateFormat("dd/MM/yyyy");
+        ResultSet rs=st.executeQuery(select);        
+        
+
         //Almacenando en el ArrayList los documentos que se van a enviar
         while(rs.next())
         {   
@@ -118,106 +123,99 @@ public final class FacturaDAO {
             fra.setSecuencial(rs.getString("SECUENCIAL"));
             fra.setTotalSinImpuesto(rs.getDouble("TOTALSINIMPUESTOS"));
             fra.setTotalDescuento(rs.getDouble("TOTALDESCUENTO"));
-            arr.add(fra);
+            arrayInfoTrib.add(fra);
         }
         rs.close();
         st.close();
         
-        //Recorriendo el arreglo que contiene documentos listos para enviar
-            for(int i=0;i<arr.size();i++)
-            {
-//            if(arr.get(i).getSecuencial().equals("000000267"))     
-//            {
-                this.MONITOR.limpiaFacturas();
-            System.out.println("[info] - Registro #"+(i+1)+ " de "+arr.size());
-            this.MONITOR.setMensajeFacturas("[info] - Registro #"+(i+1)+ " de "+arr.size());
-            InfoTributaria info_t=new InfoTributaria();
-            InfoFactura info_f=new InfoFactura();
-            ArrayOfInfoAdicional array_info_a=new ArrayOfInfoAdicional();
-            ArrayOfDetalle array_det=new ArrayOfDetalle();
-            ArrayOfTotalImpuesto array_total_imp=new ArrayOfTotalImpuesto();
+            //Recorriendo el arreglo que contiene documentos listos para enviar
+            for(int i=0;i<arrayInfoTrib.size();i++){
+            this.MONITOR.limpiaFacturas();
+            System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
+            this.MONITOR.setMensajeFacturas("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
+            InfoTributaria infoTributaria=new InfoTributaria();
+            InfoFactura infoFactura=new InfoFactura();
+            ArrayOfInfoAdicional arrayInfoAdicional=new ArrayOfInfoAdicional();
+            ArrayOfDetalle arrayDetalle=new ArrayOfDetalle();
+            ArrayOfTotalImpuesto arrayTotalImpuestos=new ArrayOfTotalImpuesto();
             
-            
-            //===========================PUEDEN HABER FACTURAS CON VARIOS DETALLES====================================
-
             int band=0;
             try{
                 st=con.getCon().createStatement();
-                 String filtro="SELECT * FROM INVE_DOCUMENTOS_FE_DAT WHERE NUME_AUTO_INVE_DOCU IS NULL AND CODDOC='01' AND AMBIENTE=2 "
-//                         + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'"
-                        +" AND ESTAB="+arr.get(i).getEstab()
-                        +" AND PTOEMI="+arr.get(i).getPtoEmi()
-                        +" AND SECUENCIAL="+arr.get(i).getSecuencial();
-                 rs=st.executeQuery(filtro);
-               while(rs.next())
-                {
-                    
-                    if(band==0)
-                    {
+                String filtro="SELECT * FROM INVE_DOCUMENTOS_FE_DAT WHERE NUME_AUTO_INVE_DOCU IS NULL AND CODDOC='01' AND AMBIENTE=2 "
+                        +" AND ESTAB="+arrayInfoTrib.get(i).getEstab()
+                        +" AND PTOEMI="+arrayInfoTrib.get(i).getPtoEmi()
+                        +" AND SECUENCIAL="+arrayInfoTrib.get(i).getSecuencial();
+                rs=st.executeQuery(filtro);
+                while(rs.next()){
+                    //inicio de cabecera
+                    if(band==0){
 
                         //==================================== INFORMACION TRIBUTARIA ===========================
-                        info_t.setAmbiente(rs.getInt("AMBIENTE"));
-                        info_t.setCodDoc(rs.getString("CODDOC"));
-                        info_t.setDirMatriz(rs.getString("DIRMATRIZ"));
-                        info_t.setEstab(rs.getString("ESTAB"));
-                        info_t.setMailCliente(rs.getString("MAILCLIENTE")==null?"":rs.getString("MAILCLIENTE"));
-                        info_t.setNombreComercial(rs.getString("NOMBRECOMERCIAL")==null?" ":rs.getString("NOMBRECOMERCIAL"));
-                        info_t.setOrigen(rs.getString("ORIGEN")==null?"":rs.getString("ORIGEN"));
-                        info_t.setPtoEmi(rs.getString("PTOEMI"));
-                        info_t.setRazonSocial(rs.getString("RAZONSOCIAL"));
-                         if(rs.getString("RUC").length()<13)
-                            info_t.setRuc("0"+rs.getString("RUC"));
-                        else
-                            info_t.setRuc(rs.getString("RUC"));
-                        info_t.setSecuencial(rs.getString("SECUENCIAL"));
-                        info_t.setTipoEmision(rs.getInt("TIPOEMISION"));
+                        infoTributaria.setAmbiente(rs.getInt("AMBIENTE"));
+                        infoTributaria.setCodDoc(rs.getString("CODDOC"));
+                        infoTributaria.setDirMatriz(rs.getString("DIRMATRIZ"));
+                        infoTributaria.setEstab(rs.getString("ESTAB"));
+                        JAXBElement<String> mailCliente=factory.createInfoTributariaMailCliente(rs.getString("MAILCLIENTE"));
+                        infoTributaria.setMailCliente((JAXBElement<String>) (mailCliente==null?"":mailCliente));
+                        JAXBElement<String> nombreComercial = factory.createInfoTributariaNombreComercial(rs.getString("NOMBRECOMERCIAL"));
+                        infoTributaria.setNombreComercial((JAXBElement<String>) (nombreComercial==null?" ":nombreComercial));
+                        JAXBElement<String> origen=factory.createInfoTributariaOrigen(rs.getString("ORIGEN"));
+                        infoTributaria.setOrigen((JAXBElement<String>) (origen==null?"":origen));
+                        infoTributaria.setPtoEmi(rs.getString("PTOEMI"));
+                        infoTributaria.setRazonSocial(rs.getString("RAZONSOCIAL"));
+                        infoTributaria.setRuc(rs.getString("RUC"));
+                        infoTributaria.setSecuencial(rs.getString("SECUENCIAL"));
+                        infoTributaria.setTipoEmision(rs.getInt("TIPOEMISION"));
                         
                         
                         //====================================== INFORMACION DE FACTURA ===========================
-                        
-                        info_f.setContribuyenteEspecial(rs.getString("CONTRIBUYENTEESPECIAL"));
-                        info_f.setDirEstablecimiento(rs.getString("DIRESTABLECIMIENTO").replace(",", " "));
-//                        info_f.setFechaEmision(f.format(rs.getDate("FECHAEMISION")));
-                        info_f.setFechaEmision(rs.getString("FECHAEMISION"));
-//                        info_f.setGuiaRemision(String.valueOf(rs.getLong("GUIAREMISION")));
-                        info_f.setGuiaRemision(rs.getString("GUIAREMISION")==null?"":rs.getString("GUIAREMISION"));
-                        info_f.setIdentificacionComprador(rs.getString("IDENTIFICACIONCOMPRADOR"));
-                        info_f.setImporteTotal(BigDecimal.valueOf(rs.getDouble("IMPORTETOTAL")));
-                        info_f.setMoneda(rs.getString("MONEDA")==null?"":rs.getString("MONEDA"));
-                        info_f.setObligadoContabilidad(rs.getString("OBLIGADOCONTABILIDAD")==null?"":rs.getString("OBLIGADOCONTABILIDAD"));
-                        info_f.setPropina(BigDecimal.valueOf(rs.getDouble("PROPINA")));
-                        info_f.setRazonSocialComprador(rs.getString("RAZONSOCIALCOMPRADOR").trim());
+                        JAXBElement<String> contribuyenteEspecial = factory.createInfoFacturaContribuyenteEspecial(rs.getString("CONTRIBUYENTEESPECIAL"));
+                        infoFactura.setContribuyenteEspecial(contribuyenteEspecial);
+                        infoFactura.setDirEstablecimiento(rs.getString("DIRESTABLECIMIENTO").replace(",", " "));
+                        infoFactura.setFechaEmision(rs.getString("FECHAEMISION"));
+                        JAXBElement<String> guiaRemision=factory.createInfoFacturaGuiaRemision(rs.getString("GUIAREMISION"));
+                        infoFactura.setGuiaRemision((JAXBElement<String>) (guiaRemision==null?"":guiaRemision));
+                        infoFactura.setIdentificacionComprador(rs.getString("IDENTIFICACIONCOMPRADOR"));
+                        infoFactura.setImporteTotal(BigDecimal.valueOf(rs.getDouble("IMPORTETOTAL")));
+                        JAXBElement<String> moneda=factory.createInfoFacturaMoneda(rs.getString("MONEDA"));
+                        infoFactura.setMoneda((JAXBElement<String>) (moneda==null?"":moneda));
+                        JAXBElement<String> obligadoContabilidad = factory.createInfoFacturaObligadoContabilidad(rs.getString("OBLIGADOCONTABILIDAD"));
+                        infoFactura.setObligadoContabilidad((JAXBElement<String>) (obligadoContabilidad==null?"":obligadoContabilidad));
+                        infoFactura.setPropina(BigDecimal.valueOf(rs.getDouble("PROPINA")));
+                        infoFactura.setRazonSocialComprador(rs.getString("RAZONSOCIALCOMPRADOR").trim());
                         
                         String tipo_id_comp="";
                         if(rs.getInt("TIPOIDENTIFICACIONCOMPRADOR")<10)
                             tipo_id_comp="0"+rs.getString("TIPOIDENTIFICACIONCOMPRADOR");
                         else
                             tipo_id_comp=rs.getString("TIPOIDENTIFICACIONCOMPRADOR");
-                        info_f.setTipoIdentificacionComprador(tipo_id_comp);
+                        infoFactura.setTipoIdentificacionComprador(tipo_id_comp);
                         
                         //============================ TOTAL DE IMPUESTO DE LA FACTURA =================================
                         TotalImpuesto total_imp=new TotalImpuesto();
-                        total_imp.setBaseImponible(BigDecimal.valueOf(arr.get(i).getTotalSinImpuesto()));
+                        total_imp.setBaseImponible(BigDecimal.valueOf(arrayInfoTrib.get(i).getTotalSinImpuesto()));
                         total_imp.setCodigo(rs.getInt("CODIGO"));
                         total_imp.setCodigoPorcentaje(rs.getInt("CODIGOPORCENTAJE"));
-                        total_imp.setTarifa(rs.getString("TARIFA"));
+                        JAXBElement<String> tarifa=factory.createTotalImpuestoTarifa(rs.getString("TARIFA"));
+                        total_imp.setTarifa(tarifa);
                         //OJO CON ESTE CAMPO
                         //REPRESENTA EL VALOR DEL TOTAL DE LOS IMPUESTOS,
                         //EL SRI RETORNA ERROR SI SE ENVIA CON MAS DE 2 DECIMALES
 
                         total_imp.setValor(BigDecimal.valueOf(rs.getDouble("TOTALIVA")));
-                        array_total_imp.getTotalImpuesto().add(total_imp);
+                        arrayTotalImpuestos.getTotalImpuesto().add(total_imp);
 
-                        info_f.setTotalConImpuestos(array_total_imp);
+                        infoFactura.setTotalConImpuestos(arrayTotalImpuestos);
                         
-                          
-                        info_f.setTotalDescuento(BigDecimal.valueOf(arr.get(i).getTotalDescuento()));
-                        info_f.setTotalSinImpuestos(BigDecimal.valueOf(arr.get(i).getTotalSinImpuesto()));
+                        infoFactura.setTotalDescuento(BigDecimal.valueOf(arrayInfoTrib.get(i).getTotalDescuento()));
+                        infoFactura.setTotalSinImpuestos(BigDecimal.valueOf(arrayInfoTrib.get(i).getTotalSinImpuesto()));
 
 
                         //==================================== INFORMACION ADICIONAL =============================
                         InfoAdicional info_a1=new InfoAdicional();
-                        info_a1.setNombre("OBSERVACION");
+                        JAXBElement<String> nombre=factory.createInfoAdicionalNombre("OBSERVACION");
+                        info_a1.setNombre(nombre);
                         String obs=rs.getString("OBSERVACION")==null?"NO REGISTRADO":rs.getString("OBSERVACION").toUpperCase().trim();
                         if(obs!=null)
                         {
@@ -227,7 +225,6 @@ public final class FacturaDAO {
                             obs=obs.replaceAll("Ó","O");
                             obs=obs.replaceAll("Ú","U");
                             obs=obs.replace("."," ");
-                            
 //                            obs=obs.replace(",", "");
                             obs=obs.replaceAll("\n", " ");
 //                            obs=obs.replace(":", "");
@@ -237,15 +234,14 @@ public final class FacturaDAO {
                             obs=obs.replaceAll("-", " ");
 //                            obs=obs.replace("\",  "");
                             obs=obs.replace("/",  " ");
-//                            obs=obs.replace("+", "MAS");
-//                            obs=obs.replace("(", " ");
-//                            obs=obs.replace(")", " ");
                         }
-                        info_a1.setText(obs);
+                        JAXBElement<String> text=factory.createInfoAdicionalText(obs);
+                        info_a1.setText(text);
                         
                         
                         InfoAdicional info_a2=new InfoAdicional();
-                        info_a2.setNombre("CONTACTO");
+                        nombre=factory.createInfoAdicionalNombre("CONTACTO");
+                        info_a2.setNombre(nombre);
                         String contacto=rs.getString("CONTACTO")==null?"NO REGISTRADO":rs.getString("CONTACTO").toUpperCase().trim();
                         if(contacto!=null)
                         {
@@ -258,18 +254,24 @@ public final class FacturaDAO {
                             contacto=contacto.replace("-", " O ");
                             
                         }
-                        info_a2.setText(contacto);
+                        text=factory.createInfoAdicionalText(contacto);
+                        info_a2.setText(text);
                         
                         InfoAdicional info_a3=new InfoAdicional();
-                        info_a3.setNombre("DIRECCION");
-                        info_a3.setText(rs.getString("DIRECCION")==null?"NO REGISTRADO":rs.getString("DIRECCION").toUpperCase().replace(".", " ").replace("(", " ").replace(")", " ").trim());
+                        nombre=factory.createInfoAdicionalNombre("DIRECCION");
+                        info_a3.setNombre(nombre);
+                        text=factory.createInfoAdicionalText(rs.getString("DIRECCION").toUpperCase().replace(".", " ").replace("(", " ").replace(")", " ").trim());
+                        info_a3.setText((JAXBElement<String>) (text==null?"NO REGISTRADO":text));
                         
                         InfoAdicional info_a4=new InfoAdicional();
-                        info_a4.setNombre("EMAIL");
-                        info_a4.setText(rs.getString("MAILCLIENTE")==null?"NO REGISTRADO":rs.getString("MAILCLIENTE"));
+                        nombre=factory.createInfoAdicionalNombre("EMAIL");
+                        info_a4.setNombre(nombre);
+                        text=factory.createInfoAdicionalText(rs.getString("MAILCLIENTE"));
+                        info_a4.setText((JAXBElement<String>) (text==null?"NO REGISTRADO":text));
                         
                         InfoAdicional info_a5=new InfoAdicional();
-                        info_a5.setNombre("FONO");
+                        nombre=factory.createInfoAdicionalNombre("FONO");
+                        info_a5.setNombre(nombre);
                         String fono=rs.getString("FONO")==null?"NO REGISTRADO":rs.getString("FONO").trim();
                         if(fono!=null)
                         {
@@ -277,27 +279,29 @@ public final class FacturaDAO {
                             fono=fono.replace(")","");
                             fono=fono.replaceAll("-","");
                         }
-                        info_a5.setText(fono);
-                        
+                        text=factory.createInfoAdicionalText(fono); 
+                        info_a5.setText(text);
+                        nombre=factory.createInfoAdicionalNombre("FONO_ESTAB");
                         InfoAdicional info_a6=new InfoAdicional();
-                        info_a6.setNombre("FONO_ESTAB");
-                        info_a6.setText(rs.getString("FONO_ESTAB")==null?"NO REGISTRADO":rs.getString("FONO_ESTAB").replaceAll("-","").trim());
+                        info_a6.setNombre(nombre);
+                        text=factory.createInfoAdicionalText(rs.getString("FONO_ESTAB").replaceAll("-","").trim());
+                        info_a6.setText((JAXBElement<String>) (text==null?"NO REGISTRADO":text));
                         
                         
-                        array_info_a.getInfoAdicional().add(info_a1);
-                        array_info_a.getInfoAdicional().add(info_a2);
-                        array_info_a.getInfoAdicional().add(info_a3);
-                        array_info_a.getInfoAdicional().add(info_a4);
-                        array_info_a.getInfoAdicional().add(info_a5);
-                        array_info_a.getInfoAdicional().add(info_a6);
+                        arrayInfoAdicional.getInfoAdicional().add(info_a1);
+                        arrayInfoAdicional.getInfoAdicional().add(info_a2);
+                        arrayInfoAdicional.getInfoAdicional().add(info_a3);
+                        arrayInfoAdicional.getInfoAdicional().add(info_a4);
+                        arrayInfoAdicional.getInfoAdicional().add(info_a5);
+                        arrayInfoAdicional.getInfoAdicional().add(info_a6);
 
-                    }
-                    
+                    }                    
                       
                     //========================= DATOS DEL DETALLE DE LA FACTURA ============================
                     Detalle detalle=new Detalle();
                     detalle.setCantidad(BigDecimal.valueOf(rs.getDouble("CANTIDAD")));
-                    detalle.setCodigoAuxiliar(rs.getString("CODIGOAUXILIAR")==null?"":rs.getString("CODIGOAUXILIAR").replace("-",""));
+                    JAXBElement<String> codigoAuxiliar=factory.createDetalleCodigoAuxiliar(rs.getString("CODIGOAUXILIAR").replace("-",""));
+                    detalle.setCodigoAuxiliar((JAXBElement<String>) (codigoAuxiliar==null?"":codigoAuxiliar));
                     detalle.setCodigoPrincipal(rs.getString("CODIGOPRINCIPAL")==null?"":rs.getString("CODIGOPRINCIPAL"));
                     detalle.setDescripcion(rs.getString("DESCRIPCION")==null?"":rs.getString("DESCRIPCION"));
                     detalle.setDescuento(BigDecimal.valueOf(rs.getDouble("DESCUENTO")));
@@ -316,393 +320,56 @@ public final class FacturaDAO {
                     detalle.setPrecioTotalSinImpuesto(BigDecimal.valueOf(rs.getDouble("PRECIOTOTALSINIMPUESTO")));
                     detalle.setPrecioUnitario(BigDecimal.valueOf(rs.getDouble("PRECIOUNITARIO")));
                     
-                    DetAdicional infoa=new DetAdicional();
-                    infoa.setNombre(rs.getString("NOMBRE_ADIC")==null?"NINGUNO":rs.getString("NOMBRE_ADIC"));
-                    infoa.setValor(rs.getString("VALOR_ADIC")==null?"NINGUNO":rs.getString("VALOR_ADIC"));
+                    DetAdicional detAdicional=new DetAdicional();
+                    JAXBElement<String> nombre=factory.createDetAdicionalNombre(rs.getString("NOMBRE_ADIC"));
+                    detAdicional.setNombre((JAXBElement<String>) (nombre==null?"NINGUNO":nombre));
+                    JAXBElement<String> valor=factory.createDetAdicionalValor(rs.getString("VALOR_ADIC"));
+                    detAdicional.setValor((JAXBElement<String>) (valor==null?"NINGUNO":valor));
                     
-                    ArrayOfDetAdicional arr_ia=new ArrayOfDetAdicional();
-                    arr_ia.getDetAdicional().add(infoa);
+                    ArrayOfDetAdicional arrayDetalleAdicional=new ArrayOfDetAdicional();
+                    arrayDetalleAdicional.getDetAdicional().add(detAdicional);
+                    JAXBElement<ArrayOfDetAdicional> detallesAdicionales=factory.createArrayOfDetAdicional(arrayDetalleAdicional);
+                    detalle.setDetallesAdicionales(detallesAdicionales);
                     
-                    detalle.setDetallesAdicionales(arr_ia);
-                    
-                    array_det.getDetalle().add(detalle);
+                    arrayDetalle.getDetalle().add(detalle);
 
                     band++;
-                }
-              
-
-            }
-            catch(SQLException e){e.printStackTrace();}
-            finally{
-                    rs.close();
-                    st.close();
-                }
-            
-                System.out.println("[info] - FACTURA "+arr.get(i).getEstab()+"-"+arr.get(i).getPtoEmi()+"-"+arr.get(i).getSecuencial());
-                this.MONITOR.setMensajeFacturas("[info] - FACTURA "+arr.get(i).getEstab()+"-"+arr.get(i).getPtoEmi()+"-"+arr.get(i).getSecuencial());
-                AutorizarFactura autorizar=new AutorizarFactura();
-                autorizar.setInfoTributaria( new JAXBElement(new QName("http://tempuri.org/","infoTributaria"),JAXBElement.class,info_t));
-                autorizar.setInfoFactura(new JAXBElement(new QName("http://tempuri.org/","infoFactura"),JAXBElement.class,info_f));
-                autorizar.setDetalle(new JAXBElement(new QName("http://tempuri.org/","detalle"),JAXBElement.class,array_det));
-                autorizar.setInfoAdicional(new JAXBElement(new QName("http://tempuri.org/","infoAdicional"),JAXBElement.class,array_info_a));
-
-                //generando el xml
-                generarXML(autorizar,arr.get(i).getEstab(),arr.get(i).getPtoEmi(),arr.get(i).getSecuencial());
-                
-                
-                //Ennviar documento empaquetado al ws SRI para autorizar
-                long start=0;
-                long stop = 0;
-                Response resp=null;
-                 
-                try{
-                    
-                resp= new  Response();
-//                System.out.println("=============================================");
-                System.out.println("[info] - No. Lineas : "+arr.get(i).getLineas());
-                this.MONITOR.setMensajeFacturas("[info] - No. Lineas : "+arr.get(i).getLineas());
-                System.out.println("[info] - Enviando petición de autorización al WS...");
-                this.MONITOR.setMensajeFacturas("[info] - Enviando petición de autorización al WS...");
-                
-                //obteniendo el tiempo inicial para el tiempo de espera estimado
-                start = Calendar.getInstance().getTimeInMillis();      
-                
-                //Instancia del servicio de INTEME
-                //El objeto Response encapsula la información del documento autorizado o no autorizado
-                resp=autorizarFactura(info_t,info_f,array_det,array_info_a);
-                
-                //obteniendo el tiempo final para el tiempo de espera estimado
-                stop = Calendar.getInstance().getTimeInMillis();
-//                java.util.Date d = new java.util.Date(stop-start);
-
-//                System.out.println("Tiempo de respuesta: "+d.getSeconds()+" seg");
-                System.out.println("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
-//                this.MONITOR.setMensajeFacturas("Tiempo de respuesta: "+d.getSeconds()+" seg");
-                this.MONITOR.setMensajeFacturas("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
-                
-                enviadas++;
-                System.out.println("No. de autorización: "+resp.getAutorizacion().getValue());
-                this.MONITOR.setMensajeFacturas("No. de autorización: "+resp.getAutorizacion().getValue());
-                System.out.println("Clave de acceso: "+resp.getClaveAcceso().getValue());
-                this.MONITOR.setMensajeFacturas("Clave de acceso: "+resp.getClaveAcceso().getValue());
-                System.out.println("Fecha Autorización: "+resp.getFechaAutorizacion().getValue());
-                this.MONITOR.setMensajeFacturas("Fecha Autorización: "+resp.getFechaAutorizacion().getValue());
-                System.out.println("Id. Error: "+resp.getIdError().getValue());
-                this.MONITOR.setMensajeFacturas("Id. Error: "+resp.getIdError().getValue());
-                System.out.println("Origen: "+resp.getOrigen().getValue());
-                this.MONITOR.setMensajeFacturas("Origen: "+resp.getOrigen().getValue());
-                System.out.println("Result: "+resp.getResult().getValue());
-                this.MONITOR.setMensajeFacturas("Result: "+resp.getResult().getValue());
-                System.out.println("Result Data: "+resp.getResultData().getValue());
-                this.MONITOR.setMensajeFacturas("Result Data: "+resp.getResultData().getValue());
-                    if(resp.getAutorizacion().getValue()!=null)
-                    {
-                    try{                    
-                        //Llamada del metodo para actualizar registro
-                        this.MONITOR.setMensajeFacturas("[info] - Actualizando registros...");
-                        System.out.println("[info] - Actualizando registros...");
-                        int reg=actualizarFactura(con, resp,info_t);
-                        System.out.println("[info] - Registros actualizados : "+reg);
-                        this.MONITOR.setMensajeFacturas("[info] - Registros actualizados : "+reg);
-                    }
-                    catch(SQLException ex)
-                    {
-                        this.MONITOR.setMensajeFacturas("[error] - Error al hacer la actualizacion de campos");
-                        System.out.println("[error] - Error al hacer la actualizacion de campos");
-                    }
-                    finally{continue;}
-                    }
-                    this.MONITOR.setMensajeFacturas("[info] - Registrando en el log...");
-                    System.out.println("[info] - Registrando en el log...");
-                    //llamada del metodo para el registro del log
-                    
-                    notificarResultado(con, resp,info_t,String.valueOf((stop-start)));
-                    this.MONITOR.setMensajeFacturas("[info] - Evento capturado en el historial");
-                    System.out.println("[info] - Evento capturado en el historial");
-                }catch(SQLException ex){
-                    stop = Calendar.getInstance().getTimeInMillis();
-                    System.out.println("[info] - Tiempo de espera: "+(stop-start)+" miliseg");
-                    this.MONITOR.setMensajeFacturas("[info] - Tiempo de espera: "+(stop-start)+" miliseg");
-                    //llamada del metodo para el registro del log
-                    this.MONITOR.setMensajeFacturas("[error] - Ha surgido un error");
-                    this.MONITOR.setMensajeFacturas("[error] - "+ex.getCause().getMessage());
-                    notificarError(con, ex.getMessage(),info_t,String.valueOf((stop-start)));
-                
-                }
-                finally{
-                    if(resp!=null)
-                    {resp=null;}
-                    continue;
-                    
-                }
-                        
-//            }//FINAL DEL IF
-        
-            }//FINAL DEL FOR
-            return enviadas;
-    }
-
-    public int enviarFacturas(ConexionBD con,String coddoc){
-    
-    int enviadas=0;
-    InfoTrib infoTrib=null;
-    ArrayList<InfoTrib> arr=new ArrayList<>();
-    CallableStatement cs=null;
-    String sentencia="{call SP_FACTCONSULTACABECERAS(?,?)}";
-    String filtro="{call SP_FACTCONSULTADETALLE(?,?,?,?,?)}";
-    ResultSet rs=null;
-    try{
-        cs=con.getCon().prepareCall(sentencia);
-
-        cs.setString(1,coddoc);
-        cs.registerOutParameter(2,oracle.jdbc.driver.OracleTypes.CURSOR);
-
-        cs.executeQuery();
-        rs=(ResultSet)cs.getObject(2);
-        while(rs.next())
-        {   
-            infoTrib=new InfoTrib();
-            infoTrib.setLineas(rs.getString("LINEAS"));
-            infoTrib.setEstab(rs.getString("ESTAB"));
-            infoTrib.setPtoEmi(rs.getString("PTOEMI"));
-            infoTrib.setSecuencial(rs.getString("SECUENCIAL"));
-            infoTrib.setTotalSinImpuesto(rs.getDouble("TOTALSINIMPUESTOS"));
-            infoTrib.setTotalDescuento(rs.getDouble("TOTALDESCUENTO"));
-            arr.add(infoTrib);
-        }
-        rs.close();
-            //Recorriendo el arreglo que contiene documentos listos para enviar
-            for(int i=0;i<arr.size();i++)
+                }            }
+            catch(SQLException e)
             {
-
-            this.MONITOR.limpiaFacturas();
-            System.out.println("[info] - Registro #"+(i+1)+ " de "+arr.size());
-            this.MONITOR.setMensajeFacturas("[info] - Registro #"+(i+1)+ " de "+arr.size());
-            InfoTributaria info_t=new InfoTributaria();
-            InfoFactura info_f=new InfoFactura();
-            ArrayOfInfoAdicional array_info_a=new ArrayOfInfoAdicional();
-            ArrayOfDetalle array_det=new ArrayOfDetalle();
-            ArrayOfTotalImpuesto array_total_imp=new ArrayOfTotalImpuesto();
-            
-            
-            //===========================PUEDEN HABER FACTURAS CON VARIOS DETALLES===================================
-            int band=0;
-            try{
-                cs=con.getCon().prepareCall(filtro);
-                cs.setString(1, coddoc);
-                cs.setString(2, arr.get(i).getEstab());
-                cs.setString(3, arr.get(i).getPtoEmi());
-                cs.setString(4, arr.get(i).getSecuencial());
-                cs.registerOutParameter(5, oracle.jdbc.driver.OracleTypes.CURSOR);
-
-
-                cs.executeQuery();
-
-                rs=(ResultSet)cs.getObject(5);
-               while(rs.next())
-                {
-                    //validacion para llenar datos de cabecera
-                    if(band==0)
-                    {
-
-                        //==================================== INFORMACION TRIBUTARIA ===========================
-                        info_t.setAmbiente(rs.getInt("AMBIENTE"));
-                        info_t.setCodDoc(rs.getString("CODDOC"));
-                        info_t.setDirMatriz(rs.getString("DIRMATRIZ"));
-                        info_t.setEstab(rs.getString("ESTAB"));
-                        info_t.setMailCliente(rs.getString("MAILCLIENTE")==null?"":rs.getString("MAILCLIENTE"));
-                        info_t.setNombreComercial(rs.getString("NOMBRECOMERCIAL")==null?" ":rs.getString("NOMBRECOMERCIAL"));
-                        info_t.setOrigen(rs.getString("ORIGEN")==null?"":rs.getString("ORIGEN"));
-                        info_t.setPtoEmi(rs.getString("PTOEMI"));
-                        info_t.setRazonSocial(rs.getString("RAZONSOCIAL"));
-                         if(rs.getString("RUC").length()<13)
-                            info_t.setRuc("0"+rs.getString("RUC"));
-                        else
-                            info_t.setRuc(rs.getString("RUC"));
-                        info_t.setSecuencial(rs.getString("SECUENCIAL"));
-                        info_t.setTipoEmision(rs.getInt("TIPOEMISION"));
-                        
-                        
-                        //====================================== INFORMACION DE FACTURA ===========================
-                        
-                        info_f.setContribuyenteEspecial(rs.getString("CONTRIBUYENTEESPECIAL"));
-                        info_f.setDirEstablecimiento(rs.getString("DIRESTABLECIMIENTO").replace(",", " "));
-//                        info_f.setFechaEmision(f.format(rs.getDate("FECHAEMISION")));
-                        info_f.setFechaEmision(rs.getString("FECHAEMISION"));
-//                        info_f.setGuiaRemision(String.valueOf(rs.getLong("GUIAREMISION")));
-                        info_f.setGuiaRemision(rs.getString("GUIAREMISION")==null?"":rs.getString("GUIAREMISION"));
-                        info_f.setIdentificacionComprador(rs.getString("IDENTIFICACIONCOMPRADOR"));
-                        info_f.setImporteTotal(BigDecimal.valueOf(rs.getDouble("IMPORTETOTAL")));
-                        info_f.setMoneda(rs.getString("MONEDA")==null?"":rs.getString("MONEDA"));
-                        info_f.setObligadoContabilidad(rs.getString("OBLIGADOCONTABILIDAD")==null?"":rs.getString("OBLIGADOCONTABILIDAD"));
-                        info_f.setPropina(BigDecimal.valueOf(rs.getDouble("PROPINA")));
-                        info_f.setRazonSocialComprador(rs.getString("RAZONSOCIALCOMPRADOR").trim());
-                        
-                        String tipo_id_comp="";
-                        if(rs.getInt("TIPOIDENTIFICACIONCOMPRADOR")<10)
-                            tipo_id_comp="0"+rs.getString("TIPOIDENTIFICACIONCOMPRADOR");
-                        else
-                            tipo_id_comp=rs.getString("TIPOIDENTIFICACIONCOMPRADOR");
-                        info_f.setTipoIdentificacionComprador(tipo_id_comp);
-                        
-                        //============================ TOTAL DE IMPUESTO DE LA FACTURA =================================
-                        TotalImpuesto total_imp=new TotalImpuesto();
-                        total_imp.setBaseImponible(BigDecimal.valueOf(arr.get(i).getTotalSinImpuesto()));
-                        total_imp.setCodigo(rs.getInt("CODIGO"));
-                        total_imp.setCodigoPorcentaje(rs.getInt("CODIGOPORCENTAJE"));
-                        total_imp.setTarifa(rs.getString("TARIFA"));
-                        //OJO CON ESTE CAMPO
-                        //REPRESENTA EL VALOR DEL TOTAL DE LOS IMPUESTOS,
-                        //EL SRI RETORNA ERROR SI SE ENVIA CON MAS DE 2 DECIMALES
-
-                        total_imp.setValor(BigDecimal.valueOf(rs.getDouble("TOTALIVA")));
-                        array_total_imp.getTotalImpuesto().add(total_imp);
-
-                        info_f.setTotalConImpuestos(array_total_imp);
-                        
-                          
-                        info_f.setTotalDescuento(BigDecimal.valueOf(arr.get(i).getTotalDescuento()));
-                        info_f.setTotalSinImpuestos(BigDecimal.valueOf(arr.get(i).getTotalSinImpuesto()));
-
-
-                        //==================================== INFORMACION ADICIONAL =============================
-                        InfoAdicional info_a1=new InfoAdicional();
-                        info_a1.setNombre("OBSERVACION");
-                        String obs=rs.getString("OBSERVACION")==null?"NO REGISTRADO":rs.getString("OBSERVACION").toUpperCase().trim();
-                        if(obs!=null)
-                        {
-                            obs=obs.replaceAll("Á","A");
-                            obs=obs.replaceAll("É","E");
-                            obs=obs.replaceAll("Í","I");
-                            obs=obs.replaceAll("Ó","O");
-                            obs=obs.replaceAll("Ú","U");
-                            obs=obs.replace("."," ");
-                            
-//                            obs=obs.replace(",", "");
-                            obs=obs.replaceAll("\n", " ");
-//                            obs=obs.replace(":", "");
-                            obs=obs.replaceAll("ñ", "n");
-                            obs=obs.replaceAll("Ñ", "N");
-                            obs=obs.replaceAll(",", " ");
-                            obs=obs.replaceAll("-", " ");
-//                            obs=obs.replace("\",  "");
-                            obs=obs.replace("/",  " ");
-                        }
-                        info_a1.setText(obs);
-                        
-                        
-                        InfoAdicional info_a2=new InfoAdicional();
-                        info_a2.setNombre("CONTACTO");
-                        String contacto=rs.getString("CONTACTO")==null?"NO REGISTRADO":rs.getString("CONTACTO").toUpperCase().trim();
-                        if(contacto!=null)
-                        {
-                            contacto=contacto.replace('Á','A');
-                            contacto=contacto.replace('É','E');
-                            contacto=contacto.replace('Í','I');
-                            contacto=contacto.replace('Ó','O');
-                            contacto=contacto.replace('Ú','U');
-                            contacto=contacto.replace(".", "");
-                            contacto=contacto.replace("-", " O ");
-                            
-                        }
-                        info_a2.setText(contacto);
-                        
-                        InfoAdicional info_a3=new InfoAdicional();
-                        info_a3.setNombre("DIRECCION");
-                        info_a3.setText(rs.getString("DIRECCION")==null?"NO REGISTRADO":rs.getString("DIRECCION").toUpperCase().replace(".", " ").replace("(", " ").replace(")", " ").trim());
-                        
-                        InfoAdicional info_a4=new InfoAdicional();
-                        info_a4.setNombre("EMAIL");
-                        info_a4.setText(rs.getString("MAILCLIENTE")==null?"NO REGISTRADO":rs.getString("MAILCLIENTE"));
-                        
-                        InfoAdicional info_a5=new InfoAdicional();
-                        info_a5.setNombre("FONO");
-                        String fono=rs.getString("FONO")==null?"NO REGISTRADO":rs.getString("FONO").trim();
-                        if(fono!=null)
-                        {
-                            fono=fono.replace("(","");
-                            fono=fono.replace(")","");
-                            fono=fono.replaceAll("-","");
-                        }
-                        info_a5.setText(fono);
-                        
-                        InfoAdicional info_a6=new InfoAdicional();
-                        info_a6.setNombre("FONO_ESTAB");
-                        info_a6.setText(rs.getString("FONO_ESTAB")==null?"NO REGISTRADO":rs.getString("FONO_ESTAB").replaceAll("-","").trim());
-                        
-                        
-                        array_info_a.getInfoAdicional().add(info_a1);
-                        array_info_a.getInfoAdicional().add(info_a2);
-                        array_info_a.getInfoAdicional().add(info_a3);
-                        array_info_a.getInfoAdicional().add(info_a4);
-                        array_info_a.getInfoAdicional().add(info_a5);
-                        array_info_a.getInfoAdicional().add(info_a6);
-
-                    }
-                    
-                      
-                    //========================= DATOS DEL DETALLE DE LA FACTURA ============================
-                    Detalle detalle=new Detalle();
-                    detalle.setCantidad(BigDecimal.valueOf(rs.getDouble("CANTIDAD")));
-                    detalle.setCodigoAuxiliar(rs.getString("CODIGOAUXILIAR")==null?"":rs.getString("CODIGOAUXILIAR").replace("-",""));
-                    detalle.setCodigoPrincipal(rs.getString("CODIGOPRINCIPAL")==null?"":rs.getString("CODIGOPRINCIPAL"));
-                    detalle.setDescripcion(rs.getString("DESCRIPCION")==null?"":rs.getString("DESCRIPCION"));
-                    detalle.setDescuento(BigDecimal.valueOf(rs.getDouble("DESCUENTO")));
-
-                        Impuesto imp=new Impuesto();
-                        imp.setBaseImponible(BigDecimal.valueOf(rs.getDouble("BASEIMPONIBLE_IMP")));
-                        imp.setCodigo(rs.getInt("CODIGO_IMP"));
-                        imp.setCodigoPorcentaje(rs.getInt("CODIGOPORCENTAJE_IMP"));
-                        imp.setTarifa(rs.getInt("TARIFA_IMP"));
-                        imp.setValor(BigDecimal.valueOf(rs.getDouble("VALOR_IMP")));
-
-                        ArrayOfImpuesto array_of_impuesto=new ArrayOfImpuesto();
-                        array_of_impuesto.getImpuesto().add(imp);
-
-                    detalle.setImpuestos(array_of_impuesto);
-                    detalle.setPrecioTotalSinImpuesto(BigDecimal.valueOf(rs.getDouble("PRECIOTOTALSINIMPUESTO")));
-                    detalle.setPrecioUnitario(BigDecimal.valueOf(rs.getDouble("PRECIOUNITARIO")));
-                    
-                    DetAdicional infoa=new DetAdicional();
-                    infoa.setNombre(rs.getString("NOMBRE_ADIC")==null?"NINGUNO":rs.getString("NOMBRE_ADIC"));
-                    infoa.setValor(rs.getString("VALOR_ADIC")==null?"NINGUNO":rs.getString("VALOR_ADIC"));
-                    
-                    ArrayOfDetAdicional arr_ia=new ArrayOfDetAdicional();
-                    arr_ia.getDetAdicional().add(infoa);
-                    
-                    detalle.setDetallesAdicionales(arr_ia);
-                    
-                    array_det.getDetalle().add(detalle);
-
-                    band++;
-                }
+                System.out.println("[error] - Error al empaquetar el documento. "+e.getMessage());
+                this.MONITOR.setMensajeFacturas("[error] - Error al empaquetar el documento. "+e.getMessage());}
+            finally
+            {
+                rs.close();
+                st.close();
             }
-            catch(SQLException e){System.out.println("[error] - Ha surgido un error al realizar el recorrido del detalle");}
-            finally{rs.close();}
             
-                System.out.println("[info] - FACTURA "+arr.get(i).getEstab()+"-"+arr.get(i).getPtoEmi()+"-"+arr.get(i).getSecuencial());
-                this.MONITOR.setMensajeFacturas("[info] - FACTURA "+arr.get(i).getEstab()+"-"+arr.get(i).getPtoEmi()+"-"+arr.get(i).getSecuencial());
-                AutorizarFactura autorizar=new AutorizarFactura();
-                autorizar.setInfoTributaria( new JAXBElement(new QName("http://tempuri.org/","infoTributaria"),JAXBElement.class,info_t));
-                autorizar.setInfoFactura(new JAXBElement(new QName("http://tempuri.org/","infoFactura"),JAXBElement.class,info_f));
-                autorizar.setDetalle(new JAXBElement(new QName("http://tempuri.org/","detalle"),JAXBElement.class,array_det));
-                autorizar.setInfoAdicional(new JAXBElement(new QName("http://tempuri.org/","infoAdicional"),JAXBElement.class,array_info_a));
+            System.out.println("[info] - FACTURA "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
+            this.MONITOR.setMensajeFacturas("[info] - FACTURA "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
+            AutorizarFactura autorizar=new AutorizarFactura();
+            JAXBElement<InfoTributaria> jbInfoTrib=factory.createAutorizarFacturaInfoTributaria(infoTributaria);
+            autorizar.setInfoTributaria(jbInfoTrib);
+            JAXBElement<InfoFactura> jbInfoFactura=factory.createAutorizarFacturaInfoFactura(infoFactura);
+            autorizar.setInfoFactura(jbInfoFactura);
+            JAXBElement<ArrayOfDetalle> jbDetalle=factory.createArrayOfDetalle(arrayDetalle);
+            autorizar.setDetalle(jbDetalle);
+            JAXBElement<ArrayOfInfoAdicional> jbInfoAdicional=factory.createArrayOfInfoAdicional(arrayInfoAdicional);
+            autorizar.setInfoAdicional(jbInfoAdicional);
 
-                //generando el xml
-                generarXML(autorizar,arr.get(i).getEstab(),arr.get(i).getPtoEmi(),arr.get(i).getSecuencial());
-                
-                
-                //Ennviar documento empaquetado al ws SRI para autorizar
-                long start=0;
-                long stop = 0;
-                Response resp=null;
-                 
-                try{
-                    
-                resp= new  Response();
-//                System.out.println("=============================================");
-                System.out.println("[info] - No. Lineas : "+arr.get(i).getLineas());
-                this.MONITOR.setMensajeFacturas("[info] - No. Lineas : "+arr.get(i).getLineas());
+            //generando el xml
+            generarXML(autorizar,arrayInfoTrib.get(i).getEstab(),arrayInfoTrib.get(i).getPtoEmi(),arrayInfoTrib.get(i).getSecuencial());
+            
+            
+            arrayAutorizarFactura.add(autorizar);
+            }
+            long start = 0;
+            long stop = 0;
+            Response resp=null;
+            //Enviar documento empaquetado al webservice de SRI para autorizar
+            for(int i=0;i<arrayAutorizarFactura.size();i++){
+                  System.out.println("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
+                this.MONITOR.setMensajeFacturas("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
                 System.out.println("[info] - Enviando petición de autorización al WS...");
                 this.MONITOR.setMensajeFacturas("[info] - Enviando petición de autorización al WS...");
                 
@@ -711,18 +378,20 @@ public final class FacturaDAO {
                 
                 //Instancia del servicio de INTEME
                 //El objeto Response encapsula la información del documento autorizado o no autorizado
-                resp=autorizarFactura(info_t,info_f,array_det,array_info_a);
+                resp=autorizarFactura(arrayAutorizarFactura.get(i).getInfoTributaria().getValue()
+                        ,arrayAutorizarFactura.get(i).getInfoFactura().getValue()
+                        ,arrayAutorizarFactura.get(i).getDetalle().getValue()
+                        ,arrayAutorizarFactura.get(i).getInfoAdicional().getValue());
                 
                 //obteniendo el tiempo final para el tiempo de espera estimado
                 stop = Calendar.getInstance().getTimeInMillis();
-//                java.util.Date d = new java.util.Date(stop-start);
-
-//                System.out.println("Tiempo de respuesta: "+d.getSeconds()+" seg");
                 System.out.println("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
-//                this.MONITOR.setMensajeFacturas("Tiempo de respuesta: "+d.getSeconds()+" seg");
                 this.MONITOR.setMensajeFacturas("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
                 
                 enviadas++;
+                
+                System.out.println(marco);
+                this.MONITOR.setMensajeFacturas(marco);
                 System.out.println("No. de autorización: "+resp.getAutorizacion().getValue());
                 this.MONITOR.setMensajeFacturas("No. de autorización: "+resp.getAutorizacion().getValue());
                 System.out.println("Clave de acceso: "+resp.getClaveAcceso().getValue());
@@ -737,75 +406,63 @@ public final class FacturaDAO {
                 this.MONITOR.setMensajeFacturas("Result: "+resp.getResult().getValue());
                 System.out.println("Result Data: "+resp.getResultData().getValue());
                 this.MONITOR.setMensajeFacturas("Result Data: "+resp.getResultData().getValue());
+                System.out.println(marco);
+                this.MONITOR.setMensajeFacturas(marco);
+                
                     if(resp.getAutorizacion().getValue()!=null)
-                    {
-                    try{                    
+                    {               
                         //Llamada del metodo para actualizar registro
                         this.MONITOR.setMensajeFacturas("[info] - Actualizando registros...");
                         System.out.println("[info] - Actualizando registros...");
-                        int reg=actualizarFactura(con, resp,info_t);
+                        int reg=actualizarFactura(con, resp,arrayAutorizarFactura.get(i).getInfoTributaria().getValue());
                         System.out.println("[info] - Registros actualizados : "+reg);
                         this.MONITOR.setMensajeFacturas("[info] - Registros actualizados : "+reg);
                     }
-                    catch(SQLException ex)
-                    {
-                        this.MONITOR.setMensajeFacturas("[error] - Error al hacer la actualizacion de campos");
-                        System.out.println("[error] - Error al hacer la actualizacion de campos");
-                    }
-                    finally{continue;}
-                    }
-                    this.MONITOR.setMensajeFacturas("[info] - Registrando en el log...");
-                    System.out.println("[info] - Registrando en el log...");
-                    //llamada del metodo para el registro del log
-                    
-                    notificarResultado(con, resp,info_t,String.valueOf((stop-start)));
-                    this.MONITOR.setMensajeFacturas("[info] - Evento capturado en el historial");
-                    System.out.println("[info] - Evento capturado en el historial");
-                }catch(SQLException ex){
-                    stop = Calendar.getInstance().getTimeInMillis();
-                    System.out.println("[info] - Tiempo de espera: "+(stop-start)+" miliseg");
-                    this.MONITOR.setMensajeFacturas("[info] - Tiempo de espera: "+(stop-start)+" miliseg");
-                    //llamada del metodo para el registro del log
-                    this.MONITOR.setMensajeFacturas("[error] - Ha surgido un error");
-                    this.MONITOR.setMensajeFacturas("[error] - "+ex.getCause().getMessage());
-                    notificarError(con, ex.getMessage(),info_t,String.valueOf((stop-start)));
-                
-                }
-                finally{
-                    if(resp!=null)
-                    {resp=null;}
-                    continue;
-                    
-                }
-        
-            }//FINAL DEL FOR
-
-    }//final del try
-    catch(SQLException ex){System.out.println("[error] - Error al realizar la consulta de la cabecera");}
-    finally{
-             try {
-             rs.close();
-             cs.close();
-             
-             } catch (SQLException ex) {
-                 System.out.println("[error] - Error al cerrar recursos (ResultSet,CallableStatement)");
-             }
-            }
-    
-    return enviadas;
-        
+                this.MONITOR.setMensajeFacturas("[info] - Registrando en el log...");
+                System.out.println("[info] - Registrando en el log...");
+                //llamada del metodo para el registro del log
+                notificarResultado(con, resp,arrayAutorizarFactura.get(i).getInfoTributaria().getValue(),String.valueOf((stop-start)));
+                this.MONITOR.setMensajeFacturas("[info] - Evento capturado en el historial");
+                System.out.println("[info] - Evento capturado en el historial");
+            
+            }//final del FOR de envío
+        return enviadas;
     }
-    
-    public int actualizarFactura(ConexionBD con,Response autorizacion,InfoTributaria info )throws SQLException{
+
+    public int actualizarFactura(ConexionBD con,Response autorizacion,InfoTributaria info ){
        
+        int result=0;
         String update="UPDATE INVE_DOCUMENTOS_FE_DAT SET NUME_AUTO_INVE_DOCU=? "
                 + "WHERE CODDOC='01' AND AMBIENTE=2 "
 //                + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101' "
                 + "AND ESTAB="+info.getEstab()+" AND PTOEMI="+info.getPtoEmi()+" AND SECUENCIAL="+info.getSecuencial() ;
-        PreparedStatement ps = con.getCon().prepareStatement(update);
+        PreparedStatement ps =null;
+       
+        try
+        {
+        ps = con.getCon().prepareStatement(update);
         ps.setString(1, autorizacion.getAutorizacion().getValue());
-        int result=ps.executeUpdate();
-        ps.close();
+        result=ps.executeUpdate();
+        
+        }
+        catch(SQLException sqle)
+        {
+            this.MONITOR.setMensajeFacturas("[error] - Error al actualizar registros");
+            System.out.println("[error] - Error al actualizar registros");
+        }
+        finally
+        {
+            if(ps!=null)
+            {
+                try
+                {
+                    ps.close();
+                }
+                catch(SQLException e){
+                System.out.println("[error] - Error al cerrar PreparedStatement");}
+            }
+        }
+        
         
     return result;
     
@@ -839,50 +496,89 @@ public final class FacturaDAO {
     
     }
     
-    private int notificarResultado(ConexionBD con,Response resp,InfoTributaria info,String ts)throws SQLException{
+    private int notificarResultado(ConexionBD con,Response resp,InfoTributaria info,String ts){
         
-         String insert="INSERT INTO INVE_LOG_FE_DAT(COD_DOC,NUM_DOC,NUM_AUTORIZACION,CLAVE_ACCESO,MENSAJE_DEVUELTO,TIEMPO_RESPUESTA,AMBIENTE)"+
+        int n=0;
+        String insert="INSERT INTO INVE_LOG_FE_DAT(COD_DOC,NUM_DOC,NUM_AUTORIZACION,CLAVE_ACCESO,MENSAJE_DEVUELTO,TIEMPO_RESPUESTA,AMBIENTE)"+
             "VALUES(?,?,?,?,?,?,?)";
-        PreparedStatement ps=con.getCon().prepareStatement(insert);
-        
-        ps.setString(1,info.getCodDoc());
-        ps.setString(2,info.getEstab()+"-"+info.getPtoEmi()+"-"+info.getSecuencial());
-        ps.setString(3,resp.getAutorizacion().getValue());
-        ps.setString(4,resp.getClaveAcceso().getValue());
-//        ps.setDate(5, new java.sql.Date( new java.util.Date().getTime()));
-        ps.setString(5,resp.getResult().getValue()+"\n"+resp.getResultData().getValue());
-        ps.setString(6,ts);
-        ps.setInt(7,2);
-        
-//        String sp="CALL MAIL_FILES(administrador.tevcol,michael.beltran@tevcol.com.ec,?,null,null,null,null)";
-//        CallableStatement call=con.getCon().prepareCall(sp);
-//        String  mensaje="Se ha generado Autorización del SRI:\nNo. Autorización: "+resp.getAutorizacion().getValue()
-//                +"\nClave de Acceso: "+resp.getClaveAcceso().getValue()
-//                +"\nFecha Autorización: "+resp.getFechaAutorizacion().getValue()
-//                +"\nResult: "+resp.getResult().getValue()
-//                +"\nResult Data: "+resp.getResultData().getValue();
-//        
-//        call.setString(1,mensaje);
-//  
-//        int n=call.executeUpdate();
-        int n=ps.executeUpdate();
-        ps.close();
+        PreparedStatement ps=null;
+        try
+        {
+            ps=con.getCon().prepareStatement(insert);
+            ps.setString(1,info.getCodDoc());
+            ps.setString(2,info.getEstab()+"-"+info.getPtoEmi()+"-"+info.getSecuencial());
+            ps.setString(3,resp.getAutorizacion().getValue());
+            ps.setString(4,resp.getClaveAcceso().getValue());
+    //        ps.setDate(5, new java.sql.Date( new java.util.Date().getTime()));
+            ps.setString(5,resp.getResult().getValue()+"\n"+resp.getResultData().getValue());
+            ps.setString(6,ts);
+            ps.setInt(7,2);
+
+    //        String sp="CALL MAIL_FILES(administrador.tevcol,michael.beltran@tevcol.com.ec,?,null,null,null,null)";
+    //        CallableStatement call=con.getCon().prepareCall(sp);
+    //        String  mensaje="Se ha generado Autorización del SRI:\nNo. Autorización: "+resp.getAutorizacion().getValue()
+    //                +"\nClave de Acceso: "+resp.getClaveAcceso().getValue()
+    //                +"\nFecha Autorización: "+resp.getFechaAutorizacion().getValue()
+    //                +"\nResult: "+resp.getResult().getValue()
+    //                +"\nResult Data: "+resp.getResultData().getValue();
+    //        
+    //        call.setString(1,mensaje);
+    //  
+    //        int n=call.executeUpdate();
+            n=ps.executeUpdate();
+        }
+        catch(SQLException ex){System.out.println("[error] - Error al insertar registros");}
+        finally
+        {
+            if(ps!=null)
+            {
+                try
+                {
+                    ps.close();
+                }
+                catch(SQLException e){
+                System.out.println("[error] - Error al cerrar PreparedStatement");}
+            }
+        }
         return n;
     }
     
-    private int notificarError(ConexionBD con, String ex,InfoTributaria info,String ts)throws SQLException{
-    String insert="INSERT INTO INVE_LOG_FE_DAT(COD_DOC,NUM_DOC,MENSAJE_DEVUELTO,TIEMPO_RESPUESTA,AMBIENTE)"+
-            "VALUES(?,?,?,?,?)";
-        PreparedStatement ps=con.getCon().prepareStatement(insert);
+    private int notificarError(ConexionBD con, String ex,InfoTributaria info,String ts){
         
+        int n=0;
+        String insert="INSERT INTO INVE_LOG_FE_DAT(COD_DOC,NUM_DOC,MENSAJE_DEVUELTO,TIEMPO_RESPUESTA,AMBIENTE)"+
+            "VALUES(?,?,?,?,?)";
+        PreparedStatement ps=null;
+        
+        try
+        {
+        ps=con.getCon().prepareStatement(insert);
         ps.setString(1,info.getCodDoc());
         ps.setString(2,info.getEstab()+"-"+info.getPtoEmi()+"-"+info.getSecuencial());
         ps.setString(3,ex);
         ps.setString(4,ts);
         ps.setInt(5,2);
 
-        int n=ps.executeUpdate();
-        ps.close();
+        n=ps.executeUpdate();
+        }
+        catch(SQLException sqle)
+        {
+            this.MONITOR.setMensajeFacturas("[error] - Error al insertar registros");
+            System.out.println("[error] - Error al insertar registros");
+        }
+        finally
+        {
+            if(ps!=null)
+            {
+                try
+                {
+                    ps.close();
+                }
+                catch(SQLException e){
+                System.out.println("[error] - Error al cerrar PreparedStatement");}
+            }
+        }
+        
         return n;
 
     }
@@ -911,19 +607,20 @@ public final class FacturaDAO {
     return result;
     }
 
-    private Response autorizarFactura(fedaemonfinal.InfoTributaria infoTributaria, fedaemonfinal.InfoFactura infoFactura, fedaemonfinal.ArrayOfDetalle detalle, fedaemonfinal.ArrayOfInfoAdicional infoAdicional) {
+    private Response autorizarFactura(InfoTributaria infoTributaria, InfoFactura infoFactura, ArrayOfDetalle detalle,ArrayOfInfoAdicional infoAdicional) {
         Response respuesta = null;
-        fedaemonfinal.CloudAutorizarComprobante service = new fedaemonfinal.CloudAutorizarComprobante();
-        fedaemonfinal.IcloudAutorizarComprobante port = service.getBasicHttpBindingIcloudAutorizarComprobante();
+        CloudAutorizarComprobante service = null;
+        IcloudAutorizarComprobante port = null;
         try 
         {            
-            respuesta = new Response();            
+            service = new CloudAutorizarComprobante();
+            port = service.getBasicHttpBindingIcloudAutorizarComprobante();           
             respuesta = port.autorizarFactura(infoTributaria, infoFactura, detalle, infoAdicional);            
         } 
         catch (Exception e) 
         {
-            System.err.println("Error al invocar: " + e.getMessage());
-            this.MONITOR.setMensajeFacturas("Error al invocar: " + e.getMessage());
+            System.err.println("[error] - Error al invocar webservice");
+            this.MONITOR.setMensajeFacturas("[error] - Error al invocar webservice");
         }
         finally
         {
@@ -931,7 +628,6 @@ public final class FacturaDAO {
             port = null;      
         }
 
-//             System.err.println("Puerto: " + service.getPorts().toString());
         return respuesta;
         
     }

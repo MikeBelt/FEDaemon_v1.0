@@ -63,7 +63,7 @@ public class frmConexionBD extends javax.swing.JFrame {
  }
     
 
-    public void mostrarNotificacion(){
+    public static void mostrarNotificacion(){
     try{
         TrayIcon icono = new TrayIcon(getImagen(),"FEDaemon - TEVCOL",crearMenu());
         SystemTray.getSystemTray().add(icono);
@@ -127,28 +127,28 @@ public class frmConexionBD extends javax.swing.JFrame {
         jLabel1.setForeground(java.awt.Color.green);
         jLabel1.setText("USER");
         jLabel1.setOpaque(true);
-        getContentPane().add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(61, 43, -1, -1));
+        getContentPane().add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(50, 120, -1, -1));
 
         jLabel2.setBackground(java.awt.Color.black);
         jLabel2.setFont(new java.awt.Font("Verdana", 1, 12)); // NOI18N
         jLabel2.setForeground(java.awt.Color.green);
         jLabel2.setText("PASSWORD");
         jLabel2.setOpaque(true);
-        getContentPane().add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(61, 81, -1, -1));
+        getContentPane().add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 150, -1, -1));
 
         jLabel3.setBackground(java.awt.Color.black);
         jLabel3.setFont(new java.awt.Font("Verdana", 1, 12)); // NOI18N
         jLabel3.setForeground(java.awt.Color.green);
         jLabel3.setText("IP SERVER");
         jLabel3.setOpaque(true);
-        getContentPane().add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(61, 119, -1, -1));
+        getContentPane().add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 180, -1, -1));
 
         jLabel4.setBackground(java.awt.Color.black);
         jLabel4.setFont(new java.awt.Font("Verdana", 1, 12)); // NOI18N
         jLabel4.setForeground(java.awt.Color.green);
         jLabel4.setText("BASE");
         jLabel4.setOpaque(true);
-        getContentPane().add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(61, 157, -1, -1));
+        getContentPane().add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(50, 210, -1, -1));
 
         jButton1.setFont(new java.awt.Font("Verdana", 1, 12)); // NOI18N
         jButton1.setText("CONECTAR");
@@ -157,7 +157,7 @@ public class frmConexionBD extends javax.swing.JFrame {
                 jButton1ActionPerformed(evt);
             }
         });
-        getContentPane().add(jButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(50, 210, -1, -1));
+        getContentPane().add(jButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 240, -1, -1));
 
         jButton2.setFont(new java.awt.Font("Verdana", 1, 12)); // NOI18N
         jButton2.setText("CANCELAR");
@@ -166,11 +166,11 @@ public class frmConexionBD extends javax.swing.JFrame {
                 jButton2ActionPerformed(evt);
             }
         });
-        getContentPane().add(jButton2, new org.netbeans.lib.awtextra.AbsoluteConstraints(170, 210, -1, -1));
-        getContentPane().add(tf_user, new org.netbeans.lib.awtextra.AbsoluteConstraints(150, 40, 217, -1));
-        getContentPane().add(tf_server, new org.netbeans.lib.awtextra.AbsoluteConstraints(150, 120, 217, -1));
-        getContentPane().add(tf_base, new org.netbeans.lib.awtextra.AbsoluteConstraints(150, 160, 217, -1));
-        getContentPane().add(pf_pass, new org.netbeans.lib.awtextra.AbsoluteConstraints(150, 80, 217, -1));
+        getContentPane().add(jButton2, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 240, -1, -1));
+        getContentPane().add(tf_user, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 110, 217, -1));
+        getContentPane().add(tf_server, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 170, 217, -1));
+        getContentPane().add(tf_base, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 200, 217, -1));
+        getContentPane().add(pf_pass, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 140, 217, -1));
 
         jButton3.setFont(new java.awt.Font("Verdana", 1, 12)); // NOI18N
         jButton3.setText("LIMPIAR");
@@ -179,10 +179,10 @@ public class frmConexionBD extends javax.swing.JFrame {
                 jButton3ActionPerformed(evt);
             }
         });
-        getContentPane().add(jButton3, new org.netbeans.lib.awtextra.AbsoluteConstraints(290, 210, -1, -1));
+        getContentPane().add(jButton3, new org.netbeans.lib.awtextra.AbsoluteConstraints(240, 240, -1, -1));
 
-        jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fedaemonfinal/tecnologia_futuro.jpg"))); // NOI18N
-        getContentPane().add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 420, 270));
+        jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/fedaemonfinal/img/icono-tevcol.png"))); // NOI18N
+        getContentPane().add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 0, 120, 100));
 
         pack();
     }// </editor-fold>//GEN-END:initComponents

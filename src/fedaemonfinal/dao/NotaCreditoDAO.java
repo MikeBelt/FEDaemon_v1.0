@@ -1,24 +1,27 @@
 
 package fedaemonfinal.dao;
 
-import fedaemonfinal.ArrayOfDetalleNC;
-import fedaemonfinal.ArrayOfImpuesto;
-import fedaemonfinal.ArrayOfInfoAdicional;
-import fedaemonfinal.ArrayOfTotalImpuesto;
-import fedaemonfinal.AutorizarNotaCredito;
-import fedaemonfinal.util.ConexionBD;
-import fedaemonfinal.DetalleNC;
-import fedaemonfinal.Impuesto;
-import fedaemonfinal.InfoAdicional;
-import fedaemonfinal.InfoNotaCredito;
-import fedaemonfinal.util.InfoTrib;
-import fedaemonfinal.InfoTributaria;
-import fedaemonfinal.Response;
-import fedaemonfinal.TotalImpuesto;
+
 import fedaemonfinal.frms.frmMonitor;
+import fedaemonfinal.infact.ArrayOfDetalleNC;
+import fedaemonfinal.infact.ArrayOfImpuesto;
+import fedaemonfinal.infact.ArrayOfInfoAdicional;
+import fedaemonfinal.infact.ArrayOfTotalImpuesto;
+import fedaemonfinal.infact.AutorizarNotaCredito;
+import fedaemonfinal.infact.CloudAutorizarComprobante;
+import fedaemonfinal.infact.DetalleNC;
+import fedaemonfinal.infact.IcloudAutorizarComprobante;
+import fedaemonfinal.infact.Impuesto;
+import fedaemonfinal.infact.InfoAdicional;
+import fedaemonfinal.infact.InfoNotaCredito;
+import fedaemonfinal.infact.InfoTributaria;
+import fedaemonfinal.infact.ObjectFactory;
+import fedaemonfinal.infact.Response;
+import fedaemonfinal.infact.TotalImpuesto;
+import fedaemonfinal.util.ConexionBD;
+import fedaemonfinal.util.InfoTrib;
 import java.io.File;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.CallableStatement;
@@ -26,7 +29,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import javax.xml.bind.JAXBContext;
@@ -89,6 +91,7 @@ public final class NotaCreditoDAO {
     public int enviarNotasCredito(ConexionBD con)throws Exception{
         
         int enviadas=0;
+        ObjectFactory factory = new ObjectFactory();
         ArrayList<InfoTrib> arr=new ArrayList<>();
         InfoTrib NC=null;
         //OJO que al consultar data de la base se recuperará info como estaba hasta el ultimo COMMIT ejecutado
@@ -147,25 +150,24 @@ public final class NotaCreditoDAO {
                         info_t.setCodDoc(rs.getString("CODDOC"));
                         info_t.setDirMatriz(rs.getString("DIRMATRIZ"));
                         info_t.setEstab(rs.getString("ESTAB"));
-                        info_t.setMailCliente(rs.getString("MAILCLIENTE")==null?"":rs.getString("MAILCLIENTE"));
-                        info_t.setNombreComercial(rs.getString("NOMBRECOMERCIAL"));
-                        info_t.setOrigen(rs.getString("ORIGEN")==null?"":rs.getString("ORIGEN"));
+                        JAXBElement<String> mailCliente=factory.createInfoTributariaMailCliente(rs.getString("MAILCLIENTE"));
+                        info_t.setMailCliente((JAXBElement<String>) (mailCliente==null?"":mailCliente));
+                        JAXBElement<String> nombreComercial = factory.createInfoTributariaNombreComercial(rs.getString("NOMBRECOMERCIAL"));
+                        info_t.setNombreComercial((JAXBElement<String>) (nombreComercial==null?" ":nombreComercial));
+                        JAXBElement<String> origen=factory.createInfoTributariaOrigen(rs.getString("ORIGEN"));
+                        info_t.setOrigen((JAXBElement<String>) (origen==null?"":origen));
                         info_t.setPtoEmi(rs.getString("PTOEMI"));
                         info_t.setRazonSocial(rs.getString("RAZONSOCIAL"));
-                        if(rs.getString("RUC").length()<13)
-                            info_t.setRuc("0"+rs.getString("RUC"));
-                        else
-                            info_t.setRuc(rs.getString("RUC"));
+                        info_t.setRuc(rs.getString("RUC"));
                         info_t.setSecuencial(rs.getString("SECUENCIAL"));
                         info_t.setTipoEmision(rs.getInt("TIPOEMISION"));
 
                         //================================ INFORMACION NOTA DE CREDITO =================================
                         info_nc.setCodDocModificado(rs.getString("CODDOCMODIFICADO"));
-                        info_nc.setContribuyenteEspecial(rs.getString("CONTRIBUYENTEESPECIAL"));
-                        info_nc.setDirEstablecimiento(rs.getString("DIRESTABLECIMIENTO"));
-//                        java.util.Date fech=new Date(rs.getDate("FECHAEMISION").getYear(),rs.getDate("FECHAEMISION").getMonth(),rs.getDate("FECHAEMISION").getDay());
-//                        java.util.Date fech=new Date(rs.getString("FECHAEMISION"));
-//                        info_nc.setFechaEmision(f.format(fech));
+                        JAXBElement<String> contribuyenteEspecial=factory.createInfoNotaCreditoContribuyenteEspecial(rs.getString("CONTRIBUYENTEESPECIAL"));
+                        info_nc.setContribuyenteEspecial(contribuyenteEspecial);
+                         JAXBElement<String> dirEstablecimiento=factory.createInfoNotaCreditoDirEstablecimiento(rs.getString("DIRESTABLECIMIENTO"));
+                        info_nc.setDirEstablecimiento(dirEstablecimiento);
                         info_nc.setFechaEmision(rs.getString("FECHAEMISION"));
 //                        info_nc.setFechaEmisionDocSustento(f.format(rs.getDate("FECHAEMISIONDOCSUSTENTO")));
                         info_nc.setFechaEmisionDocSustento(rs.getString("FECHAEMISIONDOCSUSTENTO"));
@@ -499,10 +501,10 @@ public final class NotaCreditoDAO {
     return result;
     }
 
-    private static Response autorizarNotaCredito(fedaemonfinal.InfoTributaria infoTributaria, fedaemonfinal.InfoNotaCredito infoNotaCredito, fedaemonfinal.ArrayOfDetalleNC detalle, fedaemonfinal.ArrayOfInfoAdicional infoAdicional) {
+    private static Response autorizarNotaCredito(InfoTributaria infoTributaria, InfoNotaCredito infoNotaCredito, ArrayOfDetalleNC detalle, ArrayOfInfoAdicional infoAdicional) {
         Response respuesta = null;
-        fedaemonfinal.CloudAutorizarComprobante service = new fedaemonfinal.CloudAutorizarComprobante();
-        fedaemonfinal.IcloudAutorizarComprobante port = service.getBasicHttpBindingIcloudAutorizarComprobante();
+        CloudAutorizarComprobante service = new CloudAutorizarComprobante();
+        IcloudAutorizarComprobante port = service.getBasicHttpBindingIcloudAutorizarComprobante();
         try 
         {            
             respuesta = new Response();
