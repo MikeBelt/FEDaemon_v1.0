@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.namespace.QName;
 
@@ -88,11 +89,12 @@ public final class NotaCreditoDAO {
     
     }
     
-    public int enviarNotasCredito(ConexionBD con)throws Exception{
+    public int enviarNotasCredito(ConexionBD con){
         
         int enviadas=0;
-        ObjectFactory factory = new ObjectFactory();
-        ArrayList<InfoTrib> arr=new ArrayList<>();
+        ObjectFactory factory = null;
+        ArrayList<InfoTrib> arrayInfoTrib=null;
+        ArrayList<AutorizarNotaCredito> arrayAutorizarNotaCredito =null;
         InfoTrib NC=null;
         //OJO que al consultar data de la base se recuperará info como estaba hasta el ultimo COMMIT ejecutado
         String select="SELECT COUNT(*) LINEAS,TOTALSINIMPUESTO,DESCUENTO,VALORMODIFICACION,ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
@@ -101,50 +103,58 @@ public final class NotaCreditoDAO {
 //                + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'"
                 + "GROUP BY TOTALSINIMPUESTO,DESCUENTO,VALORMODIFICACION,ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "ORDER BY FECHAEMISION ASC,SECUENCIAL ASC";
-        Statement st= con.getCon().createStatement();
-//        SimpleDateFormat f = new SimpleDateFormat("dd/MM/yyyy");
-        ResultSet rs=st.executeQuery(select);
-        while(rs.next())
-        {   
-            NC=new InfoTrib();
-            NC.setLineas(rs.getString("LINEAS"));
-            NC.setEstab(rs.getString("ESTAB"));
-            NC.setPtoEmi(rs.getString("PTOEMI"));
-            NC.setSecuencial(rs.getString("SECUENCIAL"));
-            NC.setTotalSinImpuesto(rs.getDouble("TOTALSINIMPUESTO"));
-            NC.setTotalDescuento(rs.getDouble("DESCUENTO"));
-            NC.setTotalModificacion(rs.getDouble("VALORMODIFICACION"));
-            arr.add(NC);
-        }
+        Statement st= null;
+        ResultSet rs=null;
+        long start=0;
+        long stop = 0;
+        Response resp=null;
+         int band=0;
+        try{
+            factory = new ObjectFactory();
+            arrayInfoTrib=new ArrayList<>();
+            arrayAutorizarNotaCredito=new ArrayList<>();
+            st= con.getCon().createStatement();
+            rs=st.executeQuery(select);
+            while(rs.next())
+            {   
+                NC=new InfoTrib();
+                NC.setLineas(rs.getString("LINEAS"));
+                NC.setEstab(rs.getString("ESTAB"));
+                NC.setPtoEmi(rs.getString("PTOEMI"));
+                NC.setSecuencial(rs.getString("SECUENCIAL"));
+                NC.setTotalSinImpuesto(rs.getDouble("TOTALSINIMPUESTO"));
+                NC.setTotalDescuento(rs.getDouble("DESCUENTO"));
+                NC.setTotalModificacion(rs.getDouble("VALORMODIFICACION"));
+                arrayInfoTrib.add(NC);
+            }
         rs.close();
         st.close();
-        for(int i=0;i<arr.size();i++)
+        for(int i=0;i<arrayInfoTrib.size();i++)
         {
             this.MONITOR.limpiaNC();
-            System.out.println("[info] - Registro #"+(i+1)+ " de "+arr.size());
-            this.MONITOR.setMensajeNC("[info] - Registro #"+(i+1)+ " de "+arr.size());
+            System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
+            this.MONITOR.setMensajeNC("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
             InfoTributaria info_t=new InfoTributaria();
             InfoNotaCredito info_nc=new InfoNotaCredito();
             ArrayOfDetalleNC array_det=new ArrayOfDetalleNC();
             ArrayOfInfoAdicional array_info_a=new ArrayOfInfoAdicional();  
             ArrayOfTotalImpuesto array_total_imp=new ArrayOfTotalImpuesto();
             
-            int band=0;
+            band=0;
             try{
                  String filtro="SELECT * FROM INVE_NCND_FE_DAT WHERE NUME_AUTO_INVE_DOCU IS NULL AND CODDOC='04' AND AMBIENTE=2 "
+//                         + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'""SELECT * FROM INVE_NCND_FE_DAT WHERE NUME_AUTO_INVE_DOCU IS NULL AND CODDOC='04' AND AMBIENTE=2 "
 //                         + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'"
-                        +" AND ESTAB="+arr.get(i).getEstab()
-                        +" AND PTOEMI="+arr.get(i).getPtoEmi()
-                        +" AND SECUENCIAL="+arr.get(i).getSecuencial();
+                        +" AND ESTAB="+arrayInfoTrib.get(i).getEstab()
+                        +" AND PTOEMI="+arrayInfoTrib.get(i).getPtoEmi()
+                        +" AND SECUENCIAL="+arrayInfoTrib.get(i).getSecuencial();
                  st=con.getCon().createStatement();
                  rs=st.executeQuery(filtro);
                  
                while(rs.next())
-                {
-                    
+                {                   
                     if(band==0)
                     {
-
                         //============================ INFORMACION TRIBUTARIA =====================================
                         info_t.setAmbiente(Integer.parseInt(rs.getString("AMBIENTE")));
                         info_t.setCodDoc(rs.getString("CODDOC"));
@@ -172,39 +182,40 @@ public final class NotaCreditoDAO {
 //                        info_nc.setFechaEmisionDocSustento(f.format(rs.getDate("FECHAEMISIONDOCSUSTENTO")));
                         info_nc.setFechaEmisionDocSustento(rs.getString("FECHAEMISIONDOCSUSTENTO"));
                         info_nc.setIdentificacionComprador(rs.getString("IDENTIFICACIONCOMPRADOR"));
-                        info_nc.setMoneda(rs.getString("MONEDA"));
+                        JAXBElement<String> moneda=factory.createInfoNotaCreditoMoneda(rs.getString("MONEDA"));
+                        info_nc.setMoneda(moneda);
                         info_nc.setMotivo(rs.getString("MOTIVO"));
                         info_nc.setNumDocModificado(rs.getString("NUMDOCMODIFICADO"));
-                        info_nc.setObligadoContabilidad(rs.getString("OBLIGADOCONTABILIDAD"));
+                        JAXBElement<String> obligadoContabilidad=factory.createInfoNotaCreditoObligadoContabilidad(rs.getString("OBLIGADOCONTABILIDAD"));
+                        info_nc.setObligadoContabilidad(obligadoContabilidad);
                         info_nc.setRazonSocialComprador(rs.getString("RAZONSOCIALCOMPRADOR"));
-                        info_nc.setRise(rs.getString("RISE")==null?"":rs.getString("RISE"));
+                        JAXBElement<String> rise=factory.createInfoNotaCreditoRise(rs.getString("RISE"));
+                        info_nc.setRise((JAXBElement<String>) (rise==null?"":rise));
                         info_nc.setTipoIdentificacionComprador(rs.getString("TIPOIDENTIFICACIONCOMPRADOR"));
                         
                         //============================ TOTAL DE IMPUESTO DE LA NC =================================
                         TotalImpuesto total_imp=new TotalImpuesto();
-                        total_imp.setBaseImponible(BigDecimal.valueOf(arr.get(i).getTotalSinImpuesto()));
+                        total_imp.setBaseImponible(BigDecimal.valueOf(arrayInfoTrib.get(i).getTotalSinImpuesto()));
                         total_imp.setCodigo(rs.getInt("CODIGO"));
                         total_imp.setCodigoPorcentaje(rs.getInt("CODIGOPORCENTAJE"));
-                        total_imp.setTarifa(rs.getString("TARIFA"));
+                        JAXBElement<String> tarifa=factory.createTotalImpuestoTarifa(rs.getString("TARIFA"));
+                        total_imp.setTarifa(tarifa);
                         //OJO CON ESTE CAMPO
                         //REPRESENTA EL VALOR DEL TOTAL DE LOS IMPUESTOS,
                         //EL SRI RETORNA ERROR SI SE ENVIA CON MAS DE 2 DECIMALES
-//                        Double valor_total_imp=arr.get(i).getTotalSinImpuesto()*rs.getDouble("TARIFA")/100;
-//                        BigDecimal big=new BigDecimal(valor_total_imp);
-//                        big=big.setScale(2,RoundingMode.HALF_UP);
-                        
-//                        total_imp.setValor(big);
+
                         total_imp.setValor(BigDecimal.valueOf(rs.getDouble("TOTALIVA")));
                         array_total_imp.getTotalImpuesto().add(total_imp);
                         
                         info_nc.setTotalConImpuestos(array_total_imp);
-                        info_nc.setTotalSinImpuestos(BigDecimal.valueOf(arr.get(i).getTotalSinImpuesto()));
-                        info_nc.setValorModificacion(BigDecimal.valueOf(arr.get(i).getTotalModificacion()));
+                        info_nc.setTotalSinImpuestos(BigDecimal.valueOf(arrayInfoTrib.get(i).getTotalSinImpuesto()));
+                        info_nc.setValorModificacion(BigDecimal.valueOf(arrayInfoTrib.get(i).getTotalModificacion()));
 
                         
                         //========================== INFORMACION ADICIONAL =======================================
                         InfoAdicional info_a1=new InfoAdicional();
-                        info_a1.setNombre("OBSERVACION");
+                        JAXBElement<String> nombre=factory.createInfoAdicionalNombre("OBSERVACION");
+                        info_a1.setNombre(nombre);
                         String observacion=rs.getString("OBSERVACION")==null?"NO REGISTRADO":rs.getString("OBSERVACION").toUpperCase().trim();
                         if(observacion!=null)
                         {
@@ -219,10 +230,12 @@ public final class NotaCreditoDAO {
                             observacion=observacion.replace("Ñ", "N");
                             observacion=observacion.replace("ñ", "n");
                         }
-                        info_a1.setText(observacion);
+                        JAXBElement<String> text=factory.createInfoAdicionalText(observacion);
+                        info_a1.setText(text);
 
                         InfoAdicional info_a2=new InfoAdicional();
-                        info_a2.setNombre("CONTACTO");
+                        nombre=factory.createInfoAdicionalNombre("CONTACTO");
+                        info_a2.setNombre(nombre);
                         String contacto=rs.getString("CONTACTO")==null?"NO REGISTRADO":rs.getString("CONTACTO").toUpperCase().trim();
                         if(contacto!=null)
                         {
@@ -233,29 +246,38 @@ public final class NotaCreditoDAO {
                             contacto=contacto.replace('Ú','U');
                             contacto=contacto.replace(".", "");
                         }
-                        info_a2.setText(contacto);
+                        text=factory.createInfoAdicionalText(contacto);
+                        info_a2.setText(text);
                         
                         InfoAdicional info_a3=new InfoAdicional();
-                        info_a3.setNombre("DIRECCION");
-                        info_a3.setText(rs.getString("DIRECCION")==null?"NO REGISTRADO":rs.getString("DIRECCION").toUpperCase().trim());
+                        nombre=factory.createInfoAdicionalNombre("DIRECCION");
+                        info_a3.setNombre(nombre);
+                        text=factory.createInfoAdicionalText(rs.getString("DIRECCION").toUpperCase().trim());
+                        info_a3.setText((JAXBElement<String>) (text==null?"NO REGISTRADO":text));
 
                         InfoAdicional info_a4=new InfoAdicional();
-                        info_a4.setNombre("EMAIL");
-                        info_a4.setText(rs.getString("MAILCLIENTE")==null?"NO REGISTRADO":rs.getString("MAILCLIENTE"));
+                        nombre=factory.createInfoAdicionalNombre("EMAIL");
+                        info_a4.setNombre(nombre);
+                        text=factory.createInfoAdicionalText(rs.getString("MAILCLIENTE"));
+                        info_a4.setText((JAXBElement<String>) (text==null?"NO REGISTRADO":text));
 
                         InfoAdicional info_a5=new InfoAdicional();
-                        info_a5.setNombre("FONO");
+                        nombre=factory.createInfoAdicionalNombre("FONO");
+                        info_a5.setNombre(nombre);
                         String fono=rs.getString("FONO")==null?"NO REGISTRADO":rs.getString("FONO").trim();
                         if(fono!=null)
                         {
                             fono=fono.replace("(","");
                             fono=fono.replace(")","");
                         }
-                        info_a5.setText(fono);
+                        text=factory.createInfoAdicionalText(fono);
+                        info_a5.setText(text);
 
                         InfoAdicional info_a6=new InfoAdicional();
-                        info_a6.setNombre("FONO_ESTAB");
-                        info_a6.setText(rs.getString("FONO_ESTAB")==null?"NO REGISTRADO":rs.getString("FONO_ESTAB").trim());
+                        nombre=factory.createInfoAdicionalNombre("FONO_ESTAB");
+                        info_a6.setNombre(nombre);
+                        text=factory.createInfoAdicionalText(rs.getString("FONO_ESTAB").trim());
+                        info_a6.setText((JAXBElement<String>) (text==null?"NO REGISTRADO":text));
 
 
                         if(rs.getString("OBSERVACION")!=null)
@@ -275,7 +297,8 @@ public final class NotaCreditoDAO {
                     //============================DETALLE NOTA DE CREDITO=====================================
                     DetalleNC detalle=new DetalleNC();
                     detalle.setCantidad(BigDecimal.valueOf(rs.getDouble("CANTIDAD")));
-                    detalle.setCodigoAdicional(rs.getString("CODIGOADICIONAL"));
+                    JAXBElement<String> codigoAdicional=factory.createDetalleNCCodigoAdicional(rs.getString("CODIGOADICIONAL"));
+                    detalle.setCodigoAdicional(codigoAdicional);
                     detalle.setCodigoInterno(rs.getString("CODIGOINTERNO"));
                     detalle.setDescripcion(rs.getString("DESCRIPCION"));
                     detalle.setDescuento(BigDecimal.valueOf(rs.getDouble("DESCUENTO")));
@@ -287,11 +310,7 @@ public final class NotaCreditoDAO {
                     imp.setCodigo(rs.getInt("CODIGO_IMP"));
                     imp.setCodigoPorcentaje(rs.getInt("CODIGOPORCENTAJE_IMP"));
                     imp.setTarifa(rs.getInt("TARIFA_IMP"));
-                    //EL SRI RETORNA ERROR SI SE ENVIA CON MAS DE 2 DECIMALES
-//                        Double valor_imp=rs.getDouble("BASEIMPONIBLE_IMP")*rs.getDouble("TARIFA_IMP")/100;
-//                        BigDecimal big=new BigDecimal(valor_imp);
-//                        big=big.setScale(2,RoundingMode.HALF_UP);
-//                    imp.setValor(big);    
+                    //EL SRI RETORNA ERROR SI SE ENVIA CON MAS DE 2 DECIMALES    
                     imp.setValor(BigDecimal.valueOf(rs.getDouble("VALOR_IMP")));
 
                     ArrayOfImpuesto array_imp=new ArrayOfImpuesto();
@@ -306,19 +325,27 @@ public final class NotaCreditoDAO {
                     band++;
                 }    
                 }
-                catch(SQLException e){e.printStackTrace();}
+                catch(SQLException e)
+                {
+                    System.out.println("[error] - Error al empaquetar el documento. "+e.getMessage());
+                    this.MONITOR.setMensajeNC("[error] - Error al empaquetar el documento. "+e.getMessage());
+                }
                 finally{
                     rs.close();
                     st.close();
                 }
             
-                        System.out.println("[info] - NOTA CREDITO "+arr.get(i).getEstab()+"-"+arr.get(i).getPtoEmi()+"-"+arr.get(i).getSecuencial());
-                        this.MONITOR.setMensajeNC("[info] - NOTA CREDITO "+arr.get(i).getEstab()+"-"+arr.get(i).getPtoEmi()+"-"+arr.get(i).getSecuencial());
+                        System.out.println("[info] - NOTA CREDITO "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
+                        this.MONITOR.setMensajeNC("[info] - NOTA CREDITO "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
                         AutorizarNotaCredito autoriza=new AutorizarNotaCredito();
-                        autoriza.setInfoTributaria( new JAXBElement(new QName("http://tempuri.org/","infoTributaria"),JAXBElement.class,info_t));
-                        autoriza.setInfoNotaCredito(new JAXBElement(new QName("http://tempuri.org/","infoNotaCredito"),JAXBElement.class,info_nc));
-                        autoriza.setDetalle(new JAXBElement(new QName("http://tempuri.org/","detalle"),JAXBElement.class,array_det));
-                        autoriza.setInfoAdicional(new JAXBElement(new QName("http://tempuri.org/","infoAdicional"),JAXBElement.class,array_info_a));
+                        JAXBElement<InfoTributaria> jbInfoTributaria=factory.createAutorizarNotaCreditoInfoTributaria(info_t);
+                        autoriza.setInfoTributaria( jbInfoTributaria);
+                        JAXBElement<InfoNotaCredito> jbInfoNotaCredito=factory.createAutorizarNotaCreditoInfoNotaCredito(info_nc);
+                        autoriza.setInfoNotaCredito(jbInfoNotaCredito);
+                        JAXBElement<ArrayOfDetalleNC> jbArrayOfDetalleNC=factory.createAutorizarNotaCreditoDetalle(array_det);
+                        autoriza.setDetalle(jbArrayOfDetalleNC);
+                        JAXBElement<ArrayOfInfoAdicional> jbArrayOfInfoAdicional=factory.createAutorizarNotaCreditoInfoAdicional(array_info_a);
+                        autoriza.setInfoAdicional(jbArrayOfInfoAdicional);
 
                         System.out.println("[info] - Generando xml...");
                         this.MONITOR.setMensajeNC("[info] - Generando xml...");
@@ -330,30 +357,35 @@ public final class NotaCreditoDAO {
                         JAXBContext jaxb_context3=JAXBContext.newInstance(AutorizarNotaCredito.class);
                         m=jaxb_context3.createMarshaller();
                         m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT,true);
-                        rutaXml=this.MONITOR.dir_nc+"AutorizarNotaCredito"+arr.get(i).getEstab()+"-"+arr.get(i).getPtoEmi()+"-"+arr.get(i).getSecuencial()+".xml";
+                        rutaXml=this.MONITOR.dir_nc+"AutorizarNotaCredito"+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial()+".xml";
                         m.marshal(jaxb_autoriza, new File (rutaXml));
                         System.out.println("[info] - xml generado "+rutaXml);  
-                this.MONITOR.setMensajeNC("[info] - xml generado "+rutaXml);
+                        this.MONITOR.setMensajeNC("[info] - xml generado "+rutaXml);
+                        generarXML(autoriza,arrayInfoTrib.get(i).getEstab(),arrayInfoTrib.get(i).getPtoEmi(),arrayInfoTrib.get(i).getSecuencial());
                         
-                long start=0;
-                long stop = 0;
-                Response resp=null;
-                 
-                try{
-                    resp=new Response();
-//                    System.out.println("=============================================");
-                    System.out.println("[info] - No. Lineas : "+arr.get(i).getLineas());
-                    this.MONITOR.setMensajeNC("[info] - No. Líneas : "+arr.get(i).getLineas());
+                        arrayAutorizarNotaCredito.add(autoriza);
+                }//final del for        
+                        
+                start=0;
+                stop = 0;
+                resp=null;
+                //Enviar documento empaquetado al webservice de SRI para autorizar
+                for(int i=0;i<arrayAutorizarNotaCredito.size();i++){
+
+                    System.out.println("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
+                    this.MONITOR.setMensajeNC("[info] - No. Líneas : "+arrayInfoTrib.get(i).getLineas());
                     System.out.println("[info] - Enviando petición de autorización al WS...");
                     this.MONITOR.setMensajeNC("[info] - Enviando petición de autorización al WS...");
                     //obteniendo el tiempo inicial para el tiempo de espera estimado
                     start = Calendar.getInstance().getTimeInMillis();
                     //Instancia del servicio de INTEME
                     //El objeto Response encapsula la información del documento autorizado o no autorizado
-                    resp=autorizarNotaCredito(info_t,info_nc,array_det,array_info_a);
+                    resp=autorizarNotaCredito(arrayAutorizarNotaCredito.get(i).getInfoTributaria().getValue()
+                            ,arrayAutorizarNotaCredito.get(i).getInfoNotaCredito().getValue()
+                            ,arrayAutorizarNotaCredito.get(i).getDetalle().getValue()
+                            ,arrayAutorizarNotaCredito.get(i).getInfoAdicional().getValue());
                     //obteniendo el tiempo final para el tiempo de espera estimado
                     stop = Calendar.getInstance().getTimeInMillis();
-//                    java.util.Date d = new java.util.Date(stop-start);
                     
                     System.out.println("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
                     this.MONITOR.setMensajeNC("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
@@ -376,65 +408,109 @@ public final class NotaCreditoDAO {
 
                     if(resp.getAutorizacion().getValue()!=null)
                     {
-                        try{ 
+                        
                         this.MONITOR.setMensajeNC("[info] - Actualizando registros...");
                         System.out.println("[info] - Actualizando registros...");
                         //llamada del metodo para actualizar registro
-                        int reg=actualizarNC(con, resp,info_t);
+                        int reg=actualizarNC(con, resp,arrayAutorizarNotaCredito.get(i).getInfoTributaria().getValue());
                         System.out.println("[info] - Registros actualizados : "+reg);
                         this.MONITOR.setMensajeNC("[info] - Registros actualizados : "+reg);
-                         }
-                        catch(SQLException ex)
-                        {
-                        this.MONITOR.setMensajeNC("[error] - Error al hacer la actualizacion de campos");
-                        System.out.println("[error] - Error al hacer la actualizacion de campos");
-                        }
+                         
                     }
-                this.MONITOR.setMensajeNC("[info] - Registrando en el log...");
+                    this.MONITOR.setMensajeNC("[info] - Registrando en el log...");
                     System.out.println("[info] - Registrando en el log...");
                     //llamada del metodo para el registro del log
-                notificarResultado(con, resp,info_t,String.valueOf((stop-start)));
-                   this.MONITOR.setMensajeNC("[info] - Evento capturado en el historial");
-                    System.out.println("[info] - Evento capturado en el historial"); 
+                    notificarResultado(con, resp,arrayAutorizarNotaCredito.get(i).getInfoTributaria().getValue(),String.valueOf((stop-start)));
+                    this.MONITOR.setMensajeNC("[info] - Evento capturado en el historial");
+                    System.out.println("[info] - Evento capturado en el historial");
                     
-                }catch(SQLException ex){
-                    stop = Calendar.getInstance().getTimeInMillis();
-                    System.out.println("[info] - Tiempo de espera: "+(stop-start)+" miliseg");
-                    this.MONITOR.setMensajeNC("[info] - Tiempo de espera: "+(stop-start)+" miliseg");
-                    //llamada del metodo para el registro del log
-                    this.MONITOR.setMensajeNC("[error] - Ha surgido un error\n"+ex.getMessage());
-                    notificarError(con, ex.getMessage(),info_t,String.valueOf((stop-start)));
-                
-                }
-                finally{
-                    if(resp!=null)
-                    {resp=null;}
-                    continue;
-                }
-                    
-            }//FINAL DEL FOR
-
+                }//final del FOR de envío
+        }
+        catch(Exception ex)
+        {
+            this.MONITOR.setMensajeNC("[error] - Error general al enviar a autorizar");
+            System.out.println("[error] - Error general al enviar a autorizar");
+        }
+        finally
+        {
+            this.MONITOR.setMensajeNC("[info] - Cancelando envío...");
+            System.out.println("[info] - Cancelando envío...");
+        }
         return enviadas;
     }
     
-    private int actualizarNC(ConexionBD con,Response resp,InfoTributaria info) throws SQLException{
+    public void generarXML(AutorizarNotaCredito autorizar,String estab, String ptoEmi,String secuencial){
+        Marshaller m=null;
+        String rutaXml=null;
+        JAXBElement<AutorizarNotaCredito> jaxb_autoriza=null;
+        JAXBContext jaxbContext=null;
+        try{
+            System.out.println("[info] - Generando xml...");  
+            this.MONITOR.setMensajeNC("[info] - Generando xml...");
+ 
+            jaxb_autoriza=new JAXBElement(new QName(AutorizarNotaCredito.class.getSimpleName()),AutorizarNotaCredito.class,autorizar);
+            jaxbContext=JAXBContext.newInstance(AutorizarNotaCredito.class);
+            m=jaxbContext.createMarshaller();
+            m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT,true);
+            rutaXml=this.MONITOR.dir_nc+"AutorizarFactura"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
+            m.marshal(jaxb_autoriza, new File (rutaXml)); 
 
+            System.out.println("[info] - xml generado "+rutaXml);  
+            this.MONITOR.setMensajeNC("[info] - xml generado "+rutaXml);
+    
+    }
+    catch(JAXBException ex){
+        System.out.println("[error] - Error al generar xml");  
+            this.MONITOR.setMensajeNC("[error] - Error al generar xml");}
+    finally{}
+        
+        
+        
+    
+    }
+    
+    private int actualizarNC(ConexionBD con,Response resp,InfoTributaria info) {
+
+        int result=0;
         String update="UPDATE INVE_NCND_FE_DAT SET NUME_AUTO_INVE_DOCU=? "
                 + "WHERE CODDOC='04' AND AMBIENTE=2 "
 //                + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101' "
                 + "AND ESTAB="+info.getEstab()+" AND PTOEMI="+info.getPtoEmi()+" AND SECUENCIAL="+info.getSecuencial() ;
-        PreparedStatement ps=con.getCon().prepareStatement(update);
+        PreparedStatement ps=null;
+        try{
+        ps=con.getCon().prepareStatement(update);
         ps.setString(1,resp.getAutorizacion().getValue());
-        int result=ps.executeUpdate();
-        ps.close();
-
+        result=ps.executeUpdate();
+        
+        }
+        catch(SQLException ex)
+        {
+            this.MONITOR.setMensajeNC("[error] - Error al actualizar registros");
+            System.out.println("[error] - Error al actualizar registros");
+        }
+        finally
+        {
+              if(ps!=null)
+            {
+                try
+                {
+                    ps.close();
+                }
+                catch(SQLException e){
+                System.out.println("[error] - Error al cerrar PreparedStatement");}
+            }  
+        }
         return result;
     }
     
-    private int notificarResultado(ConexionBD con,Response resp,InfoTributaria info,String ts)throws SQLException{
+    private int notificarResultado(ConexionBD con,Response resp,InfoTributaria info,String ts){
+        int n=0;
         String insert="INSERT INTO INVE_LOG_FE_DAT(COD_DOC,NUM_DOC,NUM_AUTORIZACION,CLAVE_ACCESO,MENSAJE_DEVUELTO,TIEMPO_RESPUESTA,AMBIENTE)"+
             "VALUES(?,?,?,?,?,?,?)";
-        PreparedStatement ps=con.getCon().prepareStatement(insert);
+        PreparedStatement ps=null;
+        
+        try{
+        ps=con.getCon().prepareStatement(insert);
         
         ps.setString(1,info.getCodDoc());
         ps.setString(2,info.getEstab()+"-"+info.getPtoEmi()+"-"+info.getSecuencial());
@@ -456,8 +532,26 @@ public final class NotaCreditoDAO {
 //        call.setString(1,mensaje);
 //  
 //        int n=call.executeUpdate();
-        int n=ps.executeUpdate();
-        ps.close();
+        n=ps.executeUpdate();
+        
+        }
+        catch(SQLException sqle)
+        {
+            this.MONITOR.setMensajeNC("[error] - Error al insertar notificación en el log");
+            System.out.println("[error] - Error al insertar notificación en el log");
+        }
+        finally
+        {
+            if(ps!=null)
+            {
+                try
+                {
+                    ps.close();
+                }
+                catch(SQLException e){
+                System.out.println("[error] - Error al cerrar PreparedStatement");}
+            }
+        }
         return n;
     }
     
@@ -477,27 +571,49 @@ public final class NotaCreditoDAO {
 
     }
     
-    public int cambiaEstado(ConexionBD con,String estado,int atendiendo)throws SQLException, UnknownHostException{
+    public int cambiaEstado(ConexionBD con,String estado,int atendiendo){
     
+        int result=0;
         String update="UPDATE INVE_INFO_FE_DAT SET ESTATUS=?,USUARIO_ACT=?,ULT_EJECUCION=?,HOST_ACT=?,ATENDIENDO=? WHERE NOMBRE='HILO NOTAS CREDITO'";
+        PreparedStatement ps=null;
+        Calendar calendar =null;
+        InetAddress localHost =null;
+        try
+        {
+            ps = con.getCon().prepareStatement(update);
+            ps.setString(1, estado);
+            ps.setString(2, System.getProperty("user.name"));
+
+            calendar= Calendar.getInstance();
+            java.util.Date now = calendar.getTime();
+            ps.setDate(3,new java.sql.Date(now.getYear(), now.getMonth(), now.getDay()));
+            localHost = InetAddress.getLocalHost();
+            ps.setString(4,localHost.getHostName());
+            ps.setInt(5, atendiendo);
+
+            result=ps.executeUpdate();
+        }
+        catch(SQLException sqle)
+        {
+            System.out.println("[error] - Error al actualizar estado del proceso");
+        }
+        catch(UnknownHostException uhe)
+        {
+            System.out.println("[error] - Error al recuperar InetAddress");
+        }
+        finally
+        {
+            if(ps!=null)
+            {
+                try
+                {
+                    ps.close();
+                }
+                catch(SQLException e){
+                System.out.println("[error] - Error al cerrar PreparedStatement");}
+            }
+        }
         
-        PreparedStatement ps = con.getCon().prepareStatement(update);
-        ps.setString(1, estado);
-        ps.setString(2, System.getProperty("user.name"));
-        
-        Calendar calendar = Calendar.getInstance();
-        java.util.Date now = calendar.getTime();
-//        String cad=now.getYear()+"/"+now.getMonth()+"/"+now.getDay();
-        
-//        System.out.println(f.format(now));
-        
-        ps.setDate(3,new java.sql.Date(now.getYear(), now.getMonth(), now.getDay()));
-        InetAddress localHost = InetAddress.getLocalHost();
-        ps.setString(4,localHost.getHostName());
-        ps.setInt(5, atendiendo);
-        
-        int result=ps.executeUpdate();
-        ps.close();
     return result;
     }
 

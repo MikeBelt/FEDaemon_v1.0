@@ -314,7 +314,7 @@ public class frmMonitor extends javax.swing.JFrame {
                 {t_retenciones.ret.cambiaEstado(CONEXION, "APAGADO", 0);}
             if(t_notas_credito!=null)
                 if(t_notas_credito.isAlive())
-                {   t_notas_credito.ret.cambiaEstado(CONEXION, "APAGADO", 0);}
+                {   t_notas_credito.notaCreditoDAO.cambiaEstado(CONEXION, "APAGADO", 0);}
             if(t_notas_debito!=null)
                 if(t_notas_debito.isAlive())
                 {t_notas_debito.ret.cambiaEstado(CONEXION, "APAGADO", 0);}

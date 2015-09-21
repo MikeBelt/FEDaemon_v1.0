@@ -32,7 +32,7 @@ public class frmConexionBD extends javax.swing.JFrame {
 //            SimpleDateFormat formateador = new SimpleDateFormat("yyyy.MM.dd");
         
 //             this.setTitle(this.getTitle()+" v. "+formateador.format(ahora));
-             this.setTitle(this.getTitle()+" v. 2015.09.03");
+             this.setTitle(this.getTitle()+" v. 2015.09.16");
              System.out.println(this.getTitle()); 
              try{
                 CONEXION=new ConexionBD("SISTEMAS","SISTEMAS2015FE","192.168.1.18","GLTEVRAC");

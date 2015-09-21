@@ -92,14 +92,19 @@ public final class FacturaDAO {
     
     }
     
-    public int enviarFacturas(ConexionBD con)throws Exception{
+    public int enviarFacturas(ConexionBD con){
 
         int enviadas=0;
-        ObjectFactory factory = new ObjectFactory();
+        ObjectFactory factory =null;
         InfoTrib fra=null;
-        ArrayList<InfoTrib> arrayInfoTrib=new ArrayList<>();
-        ArrayList<AutorizarFactura> arrayAutorizarFactura=new ArrayList<>();
-        String marco="======================================================================";
+        ArrayList<InfoTrib> arrayInfoTrib=null;
+        ArrayList<AutorizarFactura> arrayAutorizarFactura=null;
+        InfoTributaria infoTributaria=null;
+        InfoFactura infoFactura=null;
+        ArrayOfInfoAdicional arrayInfoAdicional=null;
+        ArrayOfDetalle arrayDetalle=null;
+        ArrayOfTotalImpuesto arrayTotalImpuestos=null;
+        String marco="============================================================================";
         //OJO que al consultar data de la base se recuperará info como estaba hasta el ultimo COMMIT ejecutado
         String select="SELECT COUNT(*) LINEAS,TOTALSINIMPUESTOS,TOTALDESCUENTO,ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "FROM INVE_DOCUMENTOS_FE_DAT "
@@ -109,10 +114,20 @@ public final class FacturaDAO {
 //                + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'"
                 + "GROUP BY TOTALSINIMPUESTOS,TOTALDESCUENTO,ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "ORDER BY FECHAEMISION ASC";
-        Statement st= con.getCon().createStatement();
-        ResultSet rs=st.executeQuery(select);        
+        String filtro=null;
+        Statement st= null;
+        ResultSet rs=null;  
         
-
+        long start = 0;
+        long stop = 0;
+        Response resp=null;
+        
+        try{
+        factory = new ObjectFactory();
+        arrayInfoTrib=new ArrayList<>();
+        arrayAutorizarFactura=new ArrayList<>();
+        st= con.getCon().createStatement();
+        rs=st.executeQuery(select);
         //Almacenando en el ArrayList los documentos que se van a enviar
         while(rs.next())
         {   
@@ -133,19 +148,20 @@ public final class FacturaDAO {
             this.MONITOR.limpiaFacturas();
             System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
             this.MONITOR.setMensajeFacturas("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
-            InfoTributaria infoTributaria=new InfoTributaria();
-            InfoFactura infoFactura=new InfoFactura();
-            ArrayOfInfoAdicional arrayInfoAdicional=new ArrayOfInfoAdicional();
-            ArrayOfDetalle arrayDetalle=new ArrayOfDetalle();
-            ArrayOfTotalImpuesto arrayTotalImpuestos=new ArrayOfTotalImpuesto();
+            infoTributaria=new InfoTributaria();
+            infoFactura=new InfoFactura();
+            arrayInfoAdicional=new ArrayOfInfoAdicional();
+            arrayDetalle=new ArrayOfDetalle();
+            arrayTotalImpuestos=new ArrayOfTotalImpuesto();
             
             int band=0;
             try{
-                st=con.getCon().createStatement();
-                String filtro="SELECT * FROM INVE_DOCUMENTOS_FE_DAT WHERE NUME_AUTO_INVE_DOCU IS NULL AND CODDOC='01' AND AMBIENTE=2 "
+                
+                filtro="SELECT * FROM INVE_DOCUMENTOS_FE_DAT WHERE NUME_AUTO_INVE_DOCU IS NULL AND CODDOC='01' AND AMBIENTE=2 "
                         +" AND ESTAB="+arrayInfoTrib.get(i).getEstab()
                         +" AND PTOEMI="+arrayInfoTrib.get(i).getPtoEmi()
                         +" AND SECUENCIAL="+arrayInfoTrib.get(i).getSecuencial();
+                st=con.getCon().createStatement();
                 rs=st.executeQuery(filtro);
                 while(rs.next()){
                     //inicio de cabecera
@@ -334,7 +350,8 @@ public final class FacturaDAO {
                     arrayDetalle.getDetalle().add(detalle);
 
                     band++;
-                }            }
+                }
+            }
             catch(SQLException e)
             {
                 System.out.println("[error] - Error al empaquetar el documento. "+e.getMessage());
@@ -362,13 +379,13 @@ public final class FacturaDAO {
             
             
             arrayAutorizarFactura.add(autorizar);
-            }
-            long start = 0;
-            long stop = 0;
-            Response resp=null;
+            }//final del for
+            start = 0;
+            stop = 0;
+            resp=null;
             //Enviar documento empaquetado al webservice de SRI para autorizar
             for(int i=0;i<arrayAutorizarFactura.size();i++){
-                  System.out.println("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
+                System.out.println("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
                 this.MONITOR.setMensajeFacturas("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
                 System.out.println("[info] - Enviando petición de autorización al WS...");
                 this.MONITOR.setMensajeFacturas("[info] - Enviando petición de autorización al WS...");
@@ -426,6 +443,17 @@ public final class FacturaDAO {
                 System.out.println("[info] - Evento capturado en el historial");
             
             }//final del FOR de envío
+        }
+        catch(Exception ex)
+        {
+            this.MONITOR.setMensajeFacturas("[error] - Error general al enviar a autorizar");
+            System.out.println("[error] - Error general al enviar a autorizar");
+        }
+        finally
+        {
+            this.MONITOR.setMensajeFacturas("[info] - Cancelando envío...");
+            System.out.println("[info] - Cancelando envío...");
+        }
         return enviadas;
     }
 
@@ -440,9 +468,9 @@ public final class FacturaDAO {
        
         try
         {
-        ps = con.getCon().prepareStatement(update);
-        ps.setString(1, autorizacion.getAutorizacion().getValue());
-        result=ps.executeUpdate();
+            ps = con.getCon().prepareStatement(update);
+            ps.setString(1, autorizacion.getAutorizacion().getValue());
+            result=ps.executeUpdate();
         
         }
         catch(SQLException sqle)
@@ -583,27 +611,49 @@ public final class FacturaDAO {
 
     }
     
-    public int cambiaEstado(ConexionBD con,String estado,int atendiendo)throws SQLException, UnknownHostException{
+    public int cambiaEstado(ConexionBD con,String estado,int atendiendo) {
     
+        int result=0;
         String update="UPDATE INVE_INFO_FE_DAT SET ESTATUS=?,USUARIO_ACT=?,ULT_EJECUCION=?,HOST_ACT=?,ATENDIENDO=? WHERE NOMBRE='HILO FACTURAS'";
-        
-        PreparedStatement ps = con.getCon().prepareStatement(update);
-        ps.setString(1, estado);
-        ps.setString(2, System.getProperty("user.name"));
-        
-        Calendar calendar = Calendar.getInstance();
-        java.util.Date now = calendar.getTime();
-//        String cad=now.getYear()+"/"+now.getMonth()+"/"+now.getDay();
-//        SimpleDateFormat f=new SimpleDateFormat("dd/MM/yyyy");
-//        System.out.println(f.format(now));
-        
-        ps.setDate(3,new Date(now.getYear(), now.getMonth(), now.getDay()));
-        InetAddress localHost = InetAddress.getLocalHost();
-        ps.setString(4,localHost.getHostName());
-        ps.setInt(5, atendiendo);
-        
-        int result=ps.executeUpdate();
-        ps.close();
+        PreparedStatement ps = null;
+        Calendar calendar=null;
+        InetAddress localHost =null;
+        try
+        {
+            ps = con.getCon().prepareStatement(update);
+            ps.setString(1, estado);
+            ps.setString(2, System.getProperty("user.name"));
+
+            calendar = Calendar.getInstance();
+            java.util.Date now = calendar.getTime();
+            ps.setDate(3,new Date(now.getYear(), now.getMonth(), now.getDay()));
+            localHost= InetAddress.getLocalHost();
+            ps.setString(4,localHost.getHostName());
+            ps.setInt(5, atendiendo);
+
+            result=ps.executeUpdate();
+            
+        }
+        catch(SQLException sqle)
+        {
+            System.out.println("[error] - Error al actualizar estado del proceso");
+        }
+        catch(UnknownHostException uhe)
+        {
+            System.out.println("[error] - Error al recuperar InetAddress");
+        }
+        finally
+        {
+            if(ps!=null)
+            {
+                try
+                {
+                    ps.close();
+                }
+                catch(SQLException e){
+                System.out.println("[error] - Error al cerrar PreparedStatement");}
+            }
+        }
     return result;
     }
 

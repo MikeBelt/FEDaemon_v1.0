@@ -25,6 +25,8 @@ public final class ConexionBD {
     }
 
     public void conectar()throws ClassNotFoundException,SQLException{
+         
+            
         Class.forName("oracle.jdbc.driver.OracleDriver");
         //en esta parte OJO con el tipo de conexion:
         //si es SID se pone ":" despues del numero de puerto
@@ -33,11 +35,15 @@ public final class ConexionBD {
         String url="jdbc:oracle:thin:@"+server+":1521/"+base;
         setCon(DriverManager.getConnection(url, usr, pass));
         
+            
     }
 
     public void desconectar()throws SQLException{
-    if( getCon()!=null)
-        getCon().close();
+        
+        if( getCon()!=null)
+            getCon().close();
+        
+        
     }
     
      public String getUsr() {
