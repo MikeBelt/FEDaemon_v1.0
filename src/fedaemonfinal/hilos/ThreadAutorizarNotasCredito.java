@@ -29,7 +29,7 @@ public final class ThreadAutorizarNotasCredito extends Thread{
         int contar=0;
         
         notaCreditoDAO=new NotaCreditoDAO();
-        notaCreditoDAO.setMONITOR(MONITOR);
+        notaCreditoDAO.setMonitor(MONITOR);
         con=new ConexionBD(CONEXION.getUsr(),CONEXION.getPass(),CONEXION.getServer(),CONEXION.getBase());
         System.out.println("[info] - Iniciando hilo para autorización de Notas de Crédito... ");
         this.MONITOR.setMensajeNC("[info] - Iniciando hilo para autorización de Notas de Crédito... ");

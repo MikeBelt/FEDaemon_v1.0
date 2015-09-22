@@ -24,7 +24,7 @@ public final class ThreadAutorizarComprobantesRetencion extends Thread{
        int contar=0;
        ConexionBD con=new ConexionBD(CONEXION.getUsr(),CONEXION.getPass(),CONEXION.getServer(),CONEXION.getBase());
        ret=new RetencionDAO();
-       ret.setMONITOR(MONITOR);
+       ret.setMonitor(MONITOR);
     
         System.out.println("[info] - Iniciando hilo para autorización de Retenciones... ");
         this.MONITOR.setMensajeRetenciones("[info] - Iniciando hilo para autorización de Retenciones... ");            

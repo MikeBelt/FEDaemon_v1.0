@@ -42,7 +42,7 @@ import javax.xml.namespace.QName;
  */
 public final class RetencionDAO {
     
-    protected frmMonitor MONITOR;
+    protected frmMonitor frmMonitor;
     
     public int consultarRetencionPendientes(ConexionBD con)throws Exception{
     int result=0;
@@ -91,6 +91,7 @@ public final class RetencionDAO {
         
         int enviadas=0;
         ObjectFactory factory=new ObjectFactory();
+        String marco="============================================================================";
         //OJO que al consultar data de la base se recuperará info como estaba hasta el ultimo COMMIT ejecutado
         String select="SELECT COUNT(*),ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "FROM INVE_RETENCIONES_FE_DAT "
@@ -99,12 +100,11 @@ public final class RetencionDAO {
 //                + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'"
                 + "GROUP BY ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "ORDER BY FECHAEMISION ASC,SECUENCIAL ASC";
-        String marco="============================================================================";
         String filtro=null;
         Statement st= null;
         ResultSet rs=null;
-        InfoTrib fra=null;
-        ArrayList<InfoTrib> arr=null;
+        InfoTrib infoTrib=null;
+        ArrayList<InfoTrib> arrayInfoTrib=null;
         ArrayList<AutorizarComprobanteRetencion> arrayAutorizaComprobante=null;
         InfoTributaria info_t=null;
         InfoCompRetencion info_comp=null;
@@ -112,28 +112,28 @@ public final class RetencionDAO {
         ArrayOfInfoAdicional array_info_a=null;
         long start=0;
         long stop = 0;
-        Response resp=null;
+        Response respuesta=null;
         try{
             
-            arr=new ArrayList<>();
+            arrayInfoTrib=new ArrayList<>();
             arrayAutorizaComprobante=new ArrayList<>();
             st= con.getCon().createStatement();
             rs=st.executeQuery(select);
             while(rs.next())
             {   
-                fra=new InfoTrib();
-                fra.setEstab(rs.getString("ESTAB"));
-                fra.setPtoEmi(rs.getString("PTOEMI"));
-                fra.setSecuencial(rs.getString("SECUENCIAL"));
-                arr.add(fra);
+                infoTrib=new InfoTrib();
+                infoTrib.setEstab(rs.getString("ESTAB"));
+                infoTrib.setPtoEmi(rs.getString("PTOEMI"));
+                infoTrib.setSecuencial(rs.getString("SECUENCIAL"));
+                arrayInfoTrib.add(infoTrib);
             }
             rs.close();
             st.close();
         
-            for(int i=0;i<arr.size();i++){
-            this.MONITOR.limpiaRetenciones();
-            System.out.println("[info] - Registro #"+(i+1)+ " de "+arr.size());
-            this.MONITOR.setMensajeRetenciones("[info] - Registro #"+(i+1)+ " de "+arr.size());
+            for(int i=0;i<arrayInfoTrib.size();i++){
+            this.frmMonitor.limpiaRetenciones();
+            System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
+            this.frmMonitor.setMensajeRetenciones("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
             info_t=new InfoTributaria();
             info_comp=new InfoCompRetencion();
             array_impuestos=new ArrayOfImpuestosRetencion();
@@ -143,10 +143,11 @@ public final class RetencionDAO {
             try{
                     st=con.getCon().createStatement();
                     filtro="SELECT * FROM INVE_RETENCIONES_FE_DAT WHERE NUME_AUTO_INVE_RETE IS NULL AND CODDOC='07' AND AMBIENTE=2 "
+//                            + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'""SELECT * FROM INVE_RETENCIONES_FE_DAT WHERE NUME_AUTO_INVE_RETE IS NULL AND CODDOC='07' AND AMBIENTE=2 "
 //                            + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'"
-                                +" AND ESTAB="+arr.get(i).getEstab()
-                                +" AND PTOEMI="+arr.get(i).getPtoEmi()
-                                +" AND SECUENCIAL="+arr.get(i).getSecuencial();
+                                +" AND ESTAB="+arrayInfoTrib.get(i).getEstab()
+                                +" AND PTOEMI="+arrayInfoTrib.get(i).getPtoEmi()
+                                +" AND SECUENCIAL="+arrayInfoTrib.get(i).getSecuencial();
                     rs=st.executeQuery(filtro);
                     while(rs.next())
                     {
@@ -284,7 +285,7 @@ public final class RetencionDAO {
                 catch(SQLException e)
                 {
                     System.out.println("[error] - Error al empaquetar el documento. "+e.getMessage());
-                    this.MONITOR.setMensajeRetenciones("[error] - Error al empaquetar el documento. "+e.getMessage());
+                    this.frmMonitor.setMensajeRetenciones("[error] - Error al empaquetar el documento. "+e.getMessage());
                 }
                 finally{
                     rs.close();
@@ -292,8 +293,8 @@ public final class RetencionDAO {
                 }
          
                  //=============================Formando el xml... ====================================
-                System.out.println("[info] - COMPROBANTE RETENCION "+arr.get(i).getEstab()+"-"+arr.get(i).getPtoEmi()+"-"+arr.get(i).getSecuencial());
-                this.MONITOR.setMensajeRetenciones("[info] - COMPROBANTE RETENCION "+arr.get(i).getEstab()+"-"+arr.get(i).getPtoEmi()+"-"+arr.get(i).getSecuencial());
+                System.out.println("[info] - COMPROBANTE RETENCION "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
+                this.frmMonitor.setMensajeRetenciones("[info] - COMPROBANTE RETENCION "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
                 AutorizarComprobanteRetencion autorizar=new AutorizarComprobanteRetencion();
                 JAXBElement<InfoTributaria> jbInfoTributaria=factory.createAutorizarComprobanteRetencionInfoTributaria(info_t);
                 autorizar.setInfoTributaria(jbInfoTributaria);
@@ -304,7 +305,7 @@ public final class RetencionDAO {
                 JAXBElement<ArrayOfInfoAdicional> jbInfoAdicional=factory.createAutorizarComprobanteRetencionInfoAdicional(array_info_a);
                 autorizar.setInfoAdicional(jbInfoAdicional);
 
-                generarXML(autorizar,arr.get(i).getEstab(),arr.get(i).getPtoEmi(),arr.get(i).getSecuencial());
+                generarXML(autorizar,arrayInfoTrib.get(i).getEstab(),arrayInfoTrib.get(i).getPtoEmi(),arrayInfoTrib.get(i).getSecuencial());
                 
                 arrayAutorizaComprobante.add(autorizar);
             
@@ -312,18 +313,18 @@ public final class RetencionDAO {
         
             start=0;
             stop = 0;
-            resp=null;
+            respuesta=null;
              //Enviar documento empaquetado al webservice de SRI para autorizar
             for(int i=0;i<arrayAutorizaComprobante.size();i++){   
                 System.out.println("[info] - Enviando petición de autorización al WS...");
-                this.MONITOR.setMensajeRetenciones("[info] - Enviando petición de autorización al WS...");
+                this.frmMonitor.setMensajeRetenciones("[info] - Enviando petición de autorización al WS...");
                 //obteniendo el tiempo inicial para el tiempo de espera estimado
                 start = Calendar.getInstance().getTimeInMillis();
                 
                 //Instancia del servicio de INTEME
                 //El objeto Response encapsula la información del documento autorizado o no autorizado
                 
-                resp=autorizarComprobanteRetencion(arrayAutorizaComprobante.get(i).getInfoTributaria().getValue()
+                respuesta=autorizarComprobanteRetencion(arrayAutorizaComprobante.get(i).getInfoTributaria().getValue()
                         ,arrayAutorizaComprobante.get(i).getInfoCompRetencion().getValue()
                         ,arrayAutorizaComprobante.get(i).getImpuestos().getValue()
                         ,arrayAutorizaComprobante.get(i).getInfoAdicional().getValue());
@@ -331,57 +332,57 @@ public final class RetencionDAO {
                  //obteniendo el tiempo final para el tiempo de espera estimado
                 stop = Calendar.getInstance().getTimeInMillis();
                 System.out.println("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
-//                this.MONITOR.setMensajeRetenciones("Tiempo de respuesta: "+d.getSeconds()+" seg");
-                this.MONITOR.setMensajeRetenciones("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
+//                this.frmMonitor.setMensajeRetenciones("Tiempo de respuesta: "+d.getSeconds()+" seg");
+                this.frmMonitor.setMensajeRetenciones("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
                 
                 enviadas++;
 
                 System.out.println(marco);
-                this.MONITOR.setMensajeRetenciones(marco);
-                System.out.println("No. de autorización: "+resp.getAutorizacion().getValue());
-                this.MONITOR.setMensajeRetenciones("No. de autorización: "+resp.getAutorizacion().getValue());
-                System.out.println("Clave de acceso: "+resp.getClaveAcceso().getValue());
-                this.MONITOR.setMensajeRetenciones("Clave de acceso: "+resp.getClaveAcceso().getValue());
-                System.out.println("Fecha Autorización: "+resp.getFechaAutorizacion().getValue());
-                this.MONITOR.setMensajeRetenciones("Fecha Autorización: "+resp.getFechaAutorizacion().getValue());
-                System.out.println("Id. Error: "+resp.getIdError().getValue());
-                this.MONITOR.setMensajeRetenciones("Id. Error: "+resp.getIdError().getValue());
-                System.out.println("Origen: "+resp.getOrigen().getValue());
-                this.MONITOR.setMensajeRetenciones("Origen: "+resp.getOrigen().getValue());
-                System.out.println("Result: "+resp.getResult().getValue());
-                this.MONITOR.setMensajeRetenciones("Result: "+resp.getResult().getValue());
-                System.out.println("Result Data: "+resp.getResultData().getValue());
-                this.MONITOR.setMensajeRetenciones("Result Data: "+resp.getResultData().getValue());
+                this.frmMonitor.setMensajeRetenciones(marco);
+                System.out.println("No. de autorización: "+respuesta.getAutorizacion().getValue());
+                this.frmMonitor.setMensajeRetenciones("No. de autorización: "+respuesta.getAutorizacion().getValue());
+                System.out.println("Clave de acceso: "+respuesta.getClaveAcceso().getValue());
+                this.frmMonitor.setMensajeRetenciones("Clave de acceso: "+respuesta.getClaveAcceso().getValue());
+                System.out.println("Fecha Autorización: "+respuesta.getFechaAutorizacion().getValue());
+                this.frmMonitor.setMensajeRetenciones("Fecha Autorización: "+respuesta.getFechaAutorizacion().getValue());
+                System.out.println("Id. Error: "+respuesta.getIdError().getValue());
+                this.frmMonitor.setMensajeRetenciones("Id. Error: "+respuesta.getIdError().getValue());
+                System.out.println("Origen: "+respuesta.getOrigen().getValue());
+                this.frmMonitor.setMensajeRetenciones("Origen: "+respuesta.getOrigen().getValue());
+                System.out.println("Result: "+respuesta.getResult().getValue());
+                this.frmMonitor.setMensajeRetenciones("Result: "+respuesta.getResult().getValue());
+                System.out.println("Result Data: "+respuesta.getResultData().getValue());
+                this.frmMonitor.setMensajeRetenciones("Result Data: "+respuesta.getResultData().getValue());
                 System.out.println(marco);
-                this.MONITOR.setMensajeRetenciones(marco);
+                this.frmMonitor.setMensajeRetenciones(marco);
                 
-                if(resp.getAutorizacion().getValue()!=null)
+                if(respuesta.getAutorizacion().getValue()!=null)
                 {
-                    this.MONITOR.setMensajeRetenciones("[info] - Actualizando registros...");
+                    this.frmMonitor.setMensajeRetenciones("[info] - Actualizando registros...");
                     System.out.println("[info] - Actualizando registros...");
                     //llamada del metodo para actualizar registro
-                    int reg=actualizarRetencion(con, resp,info_t);
+                    int reg=actualizarRetencion(con, respuesta,info_t);
                     System.out.println("[info] - Registros actualizados : "+reg);
-                    this.MONITOR.setMensajeRetenciones("[info] - Registros actualizados : "+reg);
+                    this.frmMonitor.setMensajeRetenciones("[info] - Registros actualizados : "+reg);
                      
                 }
-                this.MONITOR.setMensajeRetenciones("[info] - Registrando en el log...");
+                this.frmMonitor.setMensajeRetenciones("[info] - Registrando en el log...");
                 System.out.println("[info] - Registrando en el log...");
                 //llamada del metodo para el registro del log
-                notificarResultado(con, resp,info_t,String.valueOf((stop-start)));
-                this.MONITOR.setMensajeRetenciones("[info] - Evento capturado en el historial");
+                notificarResultado(con, respuesta,info_t,String.valueOf((stop-start)));
+                this.frmMonitor.setMensajeRetenciones("[info] - Evento capturado en el historial");
                 System.out.println("[info] - Evento capturado en el historial"); 
 
             }//Final del FOR de envío
         }
         catch(SQLException | NumberFormatException ex)
         {
-            this.MONITOR.setMensajeRetenciones("[error] - Error general al enviar a autorizar");
+            this.frmMonitor.setMensajeRetenciones("[error] - Error general al enviar a autorizar");
             System.out.println("[error] - Error general al enviar a autorizar");
         }
         finally
         {
-            this.MONITOR.setMensajeRetenciones("[info] - Cancelando envío...");
+            this.frmMonitor.setMensajeRetenciones("[info] - Cancelando envío...");
             System.out.println("[info] - Cancelando envío...");
         }
         return enviadas;
@@ -395,17 +396,17 @@ public final class RetencionDAO {
         JAXBContext jaxb_context=null;
 
         System.out.println("[info] - Generando xml...");  
-        this.MONITOR.setMensajeRetenciones("[info] - Generando xml...");
+        this.frmMonitor.setMensajeRetenciones("[info] - Generando xml...");
         try{
         jaxb_autoriza=new JAXBElement(new QName(AutorizarComprobanteRetencion.class.getSimpleName()),AutorizarComprobanteRetencion.class,autorizar);
         jaxb_context=JAXBContext.newInstance(AutorizarComprobanteRetencion.class);
         m=jaxb_context.createMarshaller();
         m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT,true);
-        rutaXml=this.MONITOR.dir_retencion+"AutorizarComprobanteRetencion"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
+        rutaXml=this.frmMonitor.dir_retencion+"AutorizarComprobanteRetencion"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
         m.marshal(jaxb_autoriza, new File (rutaXml));
 
         System.out.println("[info] - xml generado "+rutaXml);  
-        this.MONITOR.setMensajeRetenciones("[info] - xml generado "+rutaXml);
+        this.frmMonitor.setMensajeRetenciones("[info] - xml generado "+rutaXml);
         }
         catch(JAXBException ex){}
         finally{}
@@ -428,7 +429,7 @@ public final class RetencionDAO {
         }
         catch(SQLException sqle)
         {
-            this.MONITOR.setMensajeRetenciones("[error] - Error al actualizar registros");
+            this.frmMonitor.setMensajeRetenciones("[error] - Error al actualizar registros");
             System.out.println("[error] - Error al actualizar registros");
         }
         finally
@@ -463,11 +464,11 @@ public final class RetencionDAO {
         
 //        String sp="CALL MAIL_FILES(administrador.tevcol,michael.beltran@tevcol.com.ec,?,null,null,null,null)";
 //        CallableStatement call=con.getCon().prepareCall(sp);
-//        String  mensaje="Se ha generado Autorización del SRI:\nNo. Autorización: "+resp.getAutorizacion().getValue()
-//                +"\nClave de Acceso: "+resp.getClaveAcceso().getValue()
-//                +"\nFecha Autorización: "+resp.getFechaAutorizacion().getValue()
-//                +"\nResult: "+resp.getResult().getValue()
-//                +"\nResult Data: "+resp.getResultData().getValue();
+//        String  mensaje="Se ha generado Autorización del SRI:\nNo. Autorización: "+respuesta.getAutorizacion().getValue()
+//                +"\nClave de Acceso: "+respuesta.getClaveAcceso().getValue()
+//                +"\nFecha Autorización: "+respuesta.getFechaAutorizacion().getValue()
+//                +"\nResult: "+respuesta.getResult().getValue()
+//                +"\nResult Data: "+respuesta.getResultData().getValue();
 //        
 //        call.setString(1,mensaje);
 //  
@@ -560,12 +561,12 @@ public final class RetencionDAO {
         return respuesta;
     }
     
-    public frmMonitor getMONITOR() {
-        return MONITOR;
+    public frmMonitor getMonitor() {
+        return frmMonitor;
     }
 
-    public void setMONITOR(frmMonitor MONITOR) {
-        this.MONITOR = MONITOR;
+    public void setMonitor(frmMonitor monitor) {
+        this.frmMonitor = monitor;
     }
     
     

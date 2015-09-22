@@ -46,7 +46,7 @@ import javax.xml.namespace.QName;
  */
 public final class FacturaDAO {
     
-    protected frmMonitor MONITOR;
+    protected frmMonitor frmMonitor;
     
     public int consultarFacturasPendientes(ConexionBD con)throws Exception{
     int result=0;
@@ -70,16 +70,20 @@ public final class FacturaDAO {
     int result=0;
     String sentencia="{call SP_FACTCONSULTAPENDIENTES(?,?)}";
     CallableStatement cs=null;
-    try{
-    cs=con.getCon().prepareCall(sentencia);
-    
-    cs.setString(1, coddoc);
-    cs.registerOutParameter(2, java.sql.Types.NUMERIC);
-    
-    cs.execute();
-    
-    result=cs.getInt(2);
-    }catch(SQLException ex){ex.printStackTrace();}
+    try
+    {
+        cs=con.getCon().prepareCall(sentencia);
+
+        cs.setString(1, coddoc);
+        cs.registerOutParameter(2, java.sql.Types.NUMERIC);
+
+        cs.execute();
+
+        result=cs.getInt(2);
+    }catch(SQLException ex)
+    {
+        System.out.println("[error] - error de CallableStatement de consoulta");
+    }
     finally{
         try{
          if(cs!=null)
@@ -120,7 +124,7 @@ public final class FacturaDAO {
         
         long start = 0;
         long stop = 0;
-        Response resp=null;
+        Response respuesta=null;
         
         try{
         factory = new ObjectFactory();
@@ -145,9 +149,9 @@ public final class FacturaDAO {
         
             //Recorriendo el arreglo que contiene documentos listos para enviar
             for(int i=0;i<arrayInfoTrib.size();i++){
-            this.MONITOR.limpiaFacturas();
+            this.frmMonitor.limpiaFacturas();
             System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
-            this.MONITOR.setMensajeFacturas("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
+            this.frmMonitor.setMensajeFacturas("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
             infoTributaria=new InfoTributaria();
             infoFactura=new InfoFactura();
             arrayInfoAdicional=new ArrayOfInfoAdicional();
@@ -355,7 +359,7 @@ public final class FacturaDAO {
             catch(SQLException e)
             {
                 System.out.println("[error] - Error al empaquetar el documento. "+e.getMessage());
-                this.MONITOR.setMensajeFacturas("[error] - Error al empaquetar el documento. "+e.getMessage());}
+                this.frmMonitor.setMensajeFacturas("[error] - Error al empaquetar el documento. "+e.getMessage());}
             finally
             {
                 rs.close();
@@ -363,7 +367,7 @@ public final class FacturaDAO {
             }
             
             System.out.println("[info] - FACTURA "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
-            this.MONITOR.setMensajeFacturas("[info] - FACTURA "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
+            this.frmMonitor.setMensajeFacturas("[info] - FACTURA "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
             AutorizarFactura autorizar=new AutorizarFactura();
             JAXBElement<InfoTributaria> jbInfoTrib=factory.createAutorizarFacturaInfoTributaria(infoTributaria);
             autorizar.setInfoTributaria(jbInfoTrib);
@@ -380,22 +384,23 @@ public final class FacturaDAO {
             
             arrayAutorizarFactura.add(autorizar);
             }//final del for
+            
             start = 0;
             stop = 0;
-            resp=null;
+            respuesta=null;
             //Enviar documento empaquetado al webservice de SRI para autorizar
             for(int i=0;i<arrayAutorizarFactura.size();i++){
                 System.out.println("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
-                this.MONITOR.setMensajeFacturas("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
+                this.frmMonitor.setMensajeFacturas("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
                 System.out.println("[info] - Enviando petición de autorización al WS...");
-                this.MONITOR.setMensajeFacturas("[info] - Enviando petición de autorización al WS...");
+                this.frmMonitor.setMensajeFacturas("[info] - Enviando petición de autorización al WS...");
                 
                 //obteniendo el tiempo inicial para el tiempo de espera estimado
                 start = Calendar.getInstance().getTimeInMillis();      
                 
                 //Instancia del servicio de INTEME
                 //El objeto Response encapsula la información del documento autorizado o no autorizado
-                resp=autorizarFactura(arrayAutorizarFactura.get(i).getInfoTributaria().getValue()
+                respuesta=autorizarFactura(arrayAutorizarFactura.get(i).getInfoTributaria().getValue()
                         ,arrayAutorizarFactura.get(i).getInfoFactura().getValue()
                         ,arrayAutorizarFactura.get(i).getDetalle().getValue()
                         ,arrayAutorizarFactura.get(i).getInfoAdicional().getValue());
@@ -403,55 +408,55 @@ public final class FacturaDAO {
                 //obteniendo el tiempo final para el tiempo de espera estimado
                 stop = Calendar.getInstance().getTimeInMillis();
                 System.out.println("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
-                this.MONITOR.setMensajeFacturas("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
+                this.frmMonitor.setMensajeFacturas("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
                 
                 enviadas++;
                 
                 System.out.println(marco);
-                this.MONITOR.setMensajeFacturas(marco);
-                System.out.println("No. de autorización: "+resp.getAutorizacion().getValue());
-                this.MONITOR.setMensajeFacturas("No. de autorización: "+resp.getAutorizacion().getValue());
-                System.out.println("Clave de acceso: "+resp.getClaveAcceso().getValue());
-                this.MONITOR.setMensajeFacturas("Clave de acceso: "+resp.getClaveAcceso().getValue());
-                System.out.println("Fecha Autorización: "+resp.getFechaAutorizacion().getValue());
-                this.MONITOR.setMensajeFacturas("Fecha Autorización: "+resp.getFechaAutorizacion().getValue());
-                System.out.println("Id. Error: "+resp.getIdError().getValue());
-                this.MONITOR.setMensajeFacturas("Id. Error: "+resp.getIdError().getValue());
-                System.out.println("Origen: "+resp.getOrigen().getValue());
-                this.MONITOR.setMensajeFacturas("Origen: "+resp.getOrigen().getValue());
-                System.out.println("Result: "+resp.getResult().getValue());
-                this.MONITOR.setMensajeFacturas("Result: "+resp.getResult().getValue());
-                System.out.println("Result Data: "+resp.getResultData().getValue());
-                this.MONITOR.setMensajeFacturas("Result Data: "+resp.getResultData().getValue());
+                this.frmMonitor.setMensajeFacturas(marco);
+                System.out.println("No. de autorización: "+respuesta.getAutorizacion().getValue());
+                this.frmMonitor.setMensajeFacturas("No. de autorización: "+respuesta.getAutorizacion().getValue());
+                System.out.println("Clave de acceso: "+respuesta.getClaveAcceso().getValue());
+                this.frmMonitor.setMensajeFacturas("Clave de acceso: "+respuesta.getClaveAcceso().getValue());
+                System.out.println("Fecha Autorización: "+respuesta.getFechaAutorizacion().getValue());
+                this.frmMonitor.setMensajeFacturas("Fecha Autorización: "+respuesta.getFechaAutorizacion().getValue());
+                System.out.println("Id. Error: "+respuesta.getIdError().getValue());
+                this.frmMonitor.setMensajeFacturas("Id. Error: "+respuesta.getIdError().getValue());
+                System.out.println("Origen: "+respuesta.getOrigen().getValue());
+                this.frmMonitor.setMensajeFacturas("Origen: "+respuesta.getOrigen().getValue());
+                System.out.println("Result: "+respuesta.getResult().getValue());
+                this.frmMonitor.setMensajeFacturas("Result: "+respuesta.getResult().getValue());
+                System.out.println("Result Data: "+respuesta.getResultData().getValue());
+                this.frmMonitor.setMensajeFacturas("Result Data: "+respuesta.getResultData().getValue());
                 System.out.println(marco);
-                this.MONITOR.setMensajeFacturas(marco);
+                this.frmMonitor.setMensajeFacturas(marco);
                 
-                    if(resp.getAutorizacion().getValue()!=null)
+                    if(respuesta.getAutorizacion().getValue()!=null)
                     {               
                         //Llamada del metodo para actualizar registro
-                        this.MONITOR.setMensajeFacturas("[info] - Actualizando registros...");
+                        this.frmMonitor.setMensajeFacturas("[info] - Actualizando registros...");
                         System.out.println("[info] - Actualizando registros...");
-                        int reg=actualizarFactura(con, resp,arrayAutorizarFactura.get(i).getInfoTributaria().getValue());
+                        int reg=actualizarFactura(con, respuesta,arrayAutorizarFactura.get(i).getInfoTributaria().getValue());
                         System.out.println("[info] - Registros actualizados : "+reg);
-                        this.MONITOR.setMensajeFacturas("[info] - Registros actualizados : "+reg);
+                        this.frmMonitor.setMensajeFacturas("[info] - Registros actualizados : "+reg);
                     }
-                this.MONITOR.setMensajeFacturas("[info] - Registrando en el log...");
+                this.frmMonitor.setMensajeFacturas("[info] - Registrando en el log...");
                 System.out.println("[info] - Registrando en el log...");
                 //llamada del metodo para el registro del log
-                notificarResultado(con, resp,arrayAutorizarFactura.get(i).getInfoTributaria().getValue(),String.valueOf((stop-start)));
-                this.MONITOR.setMensajeFacturas("[info] - Evento capturado en el historial");
+                notificarResultado(con, respuesta,arrayAutorizarFactura.get(i).getInfoTributaria().getValue(),String.valueOf((stop-start)));
+                this.frmMonitor.setMensajeFacturas("[info] - Evento capturado en el historial");
                 System.out.println("[info] - Evento capturado en el historial");
             
             }//final del FOR de envío
         }
         catch(Exception ex)
         {
-            this.MONITOR.setMensajeFacturas("[error] - Error general al enviar a autorizar");
+            this.frmMonitor.setMensajeFacturas("[error] - Error general al enviar a autorizar");
             System.out.println("[error] - Error general al enviar a autorizar");
         }
         finally
         {
-            this.MONITOR.setMensajeFacturas("[info] - Cancelando envío...");
+            this.frmMonitor.setMensajeFacturas("[info] - Cancelando envío...");
             System.out.println("[info] - Cancelando envío...");
         }
         return enviadas;
@@ -475,7 +480,7 @@ public final class FacturaDAO {
         }
         catch(SQLException sqle)
         {
-            this.MONITOR.setMensajeFacturas("[error] - Error al actualizar registros");
+            this.frmMonitor.setMensajeFacturas("[error] - Error al actualizar registros");
             System.out.println("[error] - Error al actualizar registros");
         }
         finally
@@ -504,22 +509,22 @@ public final class FacturaDAO {
         JAXBContext jaxbContext=null;
         try{
             System.out.println("[info] - Generando xml...");  
-            this.MONITOR.setMensajeFacturas("[info] - Generando xml...");
+            this.frmMonitor.setMensajeFacturas("[info] - Generando xml...");
  
             jaxb_autoriza=new JAXBElement(new QName(AutorizarFactura.class.getSimpleName()),AutorizarFactura.class,autorizar);
             jaxbContext=JAXBContext.newInstance(AutorizarFactura.class);
             m=jaxbContext.createMarshaller();
             m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT,true);
-            rutaXml=this.MONITOR.dir_facturas+"AutorizarFactura"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
+            rutaXml=this.frmMonitor.dir_facturas+"AutorizarFactura"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
             m.marshal(jaxb_autoriza, new File (rutaXml)); 
 
             System.out.println("[info] - xml generado "+rutaXml);  
-            this.MONITOR.setMensajeFacturas("[info] - xml generado "+rutaXml);
+            this.frmMonitor.setMensajeFacturas("[info] - xml generado "+rutaXml);
     
     }
     catch(JAXBException ex){
         System.out.println("[error] - Error al generar xml");  
-            this.MONITOR.setMensajeFacturas("[error] - Error al generar xml");}
+            this.frmMonitor.setMensajeFacturas("[error] - Error al generar xml");}
     finally{}
     
     }
@@ -544,11 +549,11 @@ public final class FacturaDAO {
 
     //        String sp="CALL MAIL_FILES(administrador.tevcol,michael.beltran@tevcol.com.ec,?,null,null,null,null)";
     //        CallableStatement call=con.getCon().prepareCall(sp);
-    //        String  mensaje="Se ha generado Autorización del SRI:\nNo. Autorización: "+resp.getAutorizacion().getValue()
-    //                +"\nClave de Acceso: "+resp.getClaveAcceso().getValue()
-    //                +"\nFecha Autorización: "+resp.getFechaAutorizacion().getValue()
-    //                +"\nResult: "+resp.getResult().getValue()
-    //                +"\nResult Data: "+resp.getResultData().getValue();
+    //        String  mensaje="Se ha generado Autorización del SRI:\nNo. Autorización: "+respuesta.getAutorizacion().getValue()
+    //                +"\nClave de Acceso: "+respuesta.getClaveAcceso().getValue()
+    //                +"\nFecha Autorización: "+respuesta.getFechaAutorizacion().getValue()
+    //                +"\nResult: "+respuesta.getResult().getValue()
+    //                +"\nResult Data: "+respuesta.getResultData().getValue();
     //        
     //        call.setString(1,mensaje);
     //  
@@ -591,7 +596,7 @@ public final class FacturaDAO {
         }
         catch(SQLException sqle)
         {
-            this.MONITOR.setMensajeFacturas("[error] - Error al insertar registros");
+            this.frmMonitor.setMensajeFacturas("[error] - Error al insertar registros");
             System.out.println("[error] - Error al insertar registros");
         }
         finally
@@ -670,7 +675,7 @@ public final class FacturaDAO {
         catch (Exception e) 
         {
             System.err.println("[error] - Error al invocar webservice");
-            this.MONITOR.setMensajeFacturas("[error] - Error al invocar webservice");
+            this.frmMonitor.setMensajeFacturas("[error] - Error al invocar webservice");
         }
         finally
         {
@@ -682,12 +687,12 @@ public final class FacturaDAO {
         
     }
     
-    public frmMonitor getMONITOR() {
-        return MONITOR;
+    public frmMonitor getMonitor() {
+        return frmMonitor;
     }
 
-    public void setMONITOR(frmMonitor MONITOR) {
-        this.MONITOR = MONITOR;
+    public void setMonitor(frmMonitor monitor) {
+        this.frmMonitor = monitor;
     }
     
 }

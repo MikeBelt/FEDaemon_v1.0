@@ -30,7 +30,7 @@ public final class ThreadAutorizarFacturas extends Thread{
         int contar=0;
         
         fa=new FacturaDAO(); 
-        fa.setMONITOR(MONITOR);
+        fa.setMonitor(MONITOR);
         con=new ConexionBD(CONEXION.getUsr(),CONEXION.getPass(),CONEXION.getServer(),CONEXION.getBase());
         System.out.println("[info] - Iniciando hilo para autorización de Facturas... ");
         this.MONITOR.setMensajeFacturas("[info] - Iniciando hilo para autorización de Facturas... ");

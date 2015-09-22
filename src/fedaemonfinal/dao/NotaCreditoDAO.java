@@ -40,11 +40,11 @@ import javax.xml.namespace.QName;
 
 /**
  *
- * @author Mike
+ * @author Michael Beltrán
  */
 public final class NotaCreditoDAO {
     
-    protected frmMonitor MONITOR;
+    protected frmMonitor frmMonitor;
     
     public int consultarNotaCreditoPendientes(ConexionBD con)throws Exception{
     int result=0;
@@ -95,7 +95,7 @@ public final class NotaCreditoDAO {
         ObjectFactory factory = null;
         ArrayList<InfoTrib> arrayInfoTrib=null;
         ArrayList<AutorizarNotaCredito> arrayAutorizarNotaCredito =null;
-        InfoTrib NC=null;
+        String marco="============================================================================";
         //OJO que al consultar data de la base se recuperará info como estaba hasta el ultimo COMMIT ejecutado
         String select="SELECT COUNT(*) LINEAS,TOTALSINIMPUESTO,DESCUENTO,VALORMODIFICACION,ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "FROM INVE_NCND_FE_DAT "
@@ -105,10 +105,11 @@ public final class NotaCreditoDAO {
                 + "ORDER BY FECHAEMISION ASC,SECUENCIAL ASC";
         Statement st= null;
         ResultSet rs=null;
+        InfoTrib NC=null;
         long start=0;
         long stop = 0;
-        Response resp=null;
-         int band=0;
+        Response respuesta=null;
+        int band=0;
         try{
             factory = new ObjectFactory();
             arrayInfoTrib=new ArrayList<>();
@@ -129,11 +130,10 @@ public final class NotaCreditoDAO {
             }
         rs.close();
         st.close();
-        for(int i=0;i<arrayInfoTrib.size();i++)
-        {
-            this.MONITOR.limpiaNC();
+        for(int i=0;i<arrayInfoTrib.size();i++){
+            this.frmMonitor.limpiaNC();
             System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
-            this.MONITOR.setMensajeNC("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
+            this.frmMonitor.setMensajeNC("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
             InfoTributaria info_t=new InfoTributaria();
             InfoNotaCredito info_nc=new InfoNotaCredito();
             ArrayOfDetalleNC array_det=new ArrayOfDetalleNC();
@@ -143,8 +143,7 @@ public final class NotaCreditoDAO {
             band=0;
             try{
                  String filtro="SELECT * FROM INVE_NCND_FE_DAT WHERE NUME_AUTO_INVE_DOCU IS NULL AND CODDOC='04' AND AMBIENTE=2 "
-//                         + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'""SELECT * FROM INVE_NCND_FE_DAT WHERE NUME_AUTO_INVE_DOCU IS NULL AND CODDOC='04' AND AMBIENTE=2 "
-//                         + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'"
+//                         + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'
                         +" AND ESTAB="+arrayInfoTrib.get(i).getEstab()
                         +" AND PTOEMI="+arrayInfoTrib.get(i).getPtoEmi()
                         +" AND SECUENCIAL="+arrayInfoTrib.get(i).getSecuencial();
@@ -324,63 +323,50 @@ public final class NotaCreditoDAO {
                     array_det.getDetalleNC().add(detalle);
                     band++;
                 }    
-                }
-                catch(SQLException e)
-                {
-                    System.out.println("[error] - Error al empaquetar el documento. "+e.getMessage());
-                    this.MONITOR.setMensajeNC("[error] - Error al empaquetar el documento. "+e.getMessage());
-                }
-                finally{
-                    rs.close();
-                    st.close();
-                }
-            
-                        System.out.println("[info] - NOTA CREDITO "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
-                        this.MONITOR.setMensajeNC("[info] - NOTA CREDITO "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
-                        AutorizarNotaCredito autoriza=new AutorizarNotaCredito();
-                        JAXBElement<InfoTributaria> jbInfoTributaria=factory.createAutorizarNotaCreditoInfoTributaria(info_t);
-                        autoriza.setInfoTributaria( jbInfoTributaria);
-                        JAXBElement<InfoNotaCredito> jbInfoNotaCredito=factory.createAutorizarNotaCreditoInfoNotaCredito(info_nc);
-                        autoriza.setInfoNotaCredito(jbInfoNotaCredito);
-                        JAXBElement<ArrayOfDetalleNC> jbArrayOfDetalleNC=factory.createAutorizarNotaCreditoDetalle(array_det);
-                        autoriza.setDetalle(jbArrayOfDetalleNC);
-                        JAXBElement<ArrayOfInfoAdicional> jbArrayOfInfoAdicional=factory.createAutorizarNotaCreditoInfoAdicional(array_info_a);
-                        autoriza.setInfoAdicional(jbArrayOfInfoAdicional);
+            }
+            catch(SQLException e)
+            {
+                System.out.println("[error] - Error al empaquetar el documento. "+e.getMessage());
+                this.frmMonitor.setMensajeNC("[error] - Error al empaquetar el documento. "+e.getMessage());
+            }
+            finally{
+                rs.close();
+                st.close();
+            }
 
-                        System.out.println("[info] - Generando xml...");
-                        this.MONITOR.setMensajeNC("[info] - Generando xml...");
-                        
-                        Marshaller m;
-                        String rutaXml=null;
+                System.out.println("[info] - NOTA CREDITO "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
+                this.frmMonitor.setMensajeNC("[info] - NOTA CREDITO "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
+                AutorizarNotaCredito autoriza=new AutorizarNotaCredito();
+                JAXBElement<InfoTributaria> jbInfoTributaria=factory.createAutorizarNotaCreditoInfoTributaria(info_t);
+                autoriza.setInfoTributaria( jbInfoTributaria);
+                JAXBElement<InfoNotaCredito> jbInfoNotaCredito=factory.createAutorizarNotaCreditoInfoNotaCredito(info_nc);
+                autoriza.setInfoNotaCredito(jbInfoNotaCredito);
+                JAXBElement<ArrayOfDetalleNC> jbArrayOfDetalleNC=factory.createAutorizarNotaCreditoDetalle(array_det);
+                autoriza.setDetalle(jbArrayOfDetalleNC);
+                JAXBElement<ArrayOfInfoAdicional> jbArrayOfInfoAdicional=factory.createAutorizarNotaCreditoInfoAdicional(array_info_a);
+                autoriza.setInfoAdicional(jbArrayOfInfoAdicional);
 
-                        JAXBElement<AutorizarNotaCredito> jaxb_autoriza=new JAXBElement(new QName(AutorizarNotaCredito.class.getSimpleName()),AutorizarNotaCredito.class,autoriza);
-                        JAXBContext jaxb_context3=JAXBContext.newInstance(AutorizarNotaCredito.class);
-                        m=jaxb_context3.createMarshaller();
-                        m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT,true);
-                        rutaXml=this.MONITOR.dir_nc+"AutorizarNotaCredito"+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial()+".xml";
-                        m.marshal(jaxb_autoriza, new File (rutaXml));
-                        System.out.println("[info] - xml generado "+rutaXml);  
-                        this.MONITOR.setMensajeNC("[info] - xml generado "+rutaXml);
-                        generarXML(autoriza,arrayInfoTrib.get(i).getEstab(),arrayInfoTrib.get(i).getPtoEmi(),arrayInfoTrib.get(i).getSecuencial());
-                        
-                        arrayAutorizarNotaCredito.add(autoriza);
-                }//final del for        
+                //generando xml...
+                generarXML(autoriza,arrayInfoTrib.get(i).getEstab(),arrayInfoTrib.get(i).getPtoEmi(),arrayInfoTrib.get(i).getSecuencial());
+
+                arrayAutorizarNotaCredito.add(autoriza);
+        }//final del for        
                         
                 start=0;
                 stop = 0;
-                resp=null;
+                respuesta=null;
                 //Enviar documento empaquetado al webservice de SRI para autorizar
                 for(int i=0;i<arrayAutorizarNotaCredito.size();i++){
 
                     System.out.println("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
-                    this.MONITOR.setMensajeNC("[info] - No. Líneas : "+arrayInfoTrib.get(i).getLineas());
+                    this.frmMonitor.setMensajeNC("[info] - No. Líneas : "+arrayInfoTrib.get(i).getLineas());
                     System.out.println("[info] - Enviando petición de autorización al WS...");
-                    this.MONITOR.setMensajeNC("[info] - Enviando petición de autorización al WS...");
+                    this.frmMonitor.setMensajeNC("[info] - Enviando petición de autorización al WS...");
                     //obteniendo el tiempo inicial para el tiempo de espera estimado
                     start = Calendar.getInstance().getTimeInMillis();
                     //Instancia del servicio de INTEME
                     //El objeto Response encapsula la información del documento autorizado o no autorizado
-                    resp=autorizarNotaCredito(arrayAutorizarNotaCredito.get(i).getInfoTributaria().getValue()
+                    respuesta=autorizarNotaCredito(arrayAutorizarNotaCredito.get(i).getInfoTributaria().getValue()
                             ,arrayAutorizarNotaCredito.get(i).getInfoNotaCredito().getValue()
                             ,arrayAutorizarNotaCredito.get(i).getDetalle().getValue()
                             ,arrayAutorizarNotaCredito.get(i).getInfoAdicional().getValue());
@@ -388,52 +374,52 @@ public final class NotaCreditoDAO {
                     stop = Calendar.getInstance().getTimeInMillis();
                     
                     System.out.println("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
-                    this.MONITOR.setMensajeNC("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
+                    this.frmMonitor.setMensajeNC("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
                     
                     enviadas++;
-                    System.out.println("No. de autorización: "+resp.getAutorizacion().getValue());
-                    this.MONITOR.setMensajeNC("No. de autorización: "+resp.getAutorizacion().getValue());
-                    System.out.println("Clave de acceso: "+resp.getClaveAcceso().getValue());
-                    this.MONITOR.setMensajeNC("Clave de acceso: "+resp.getClaveAcceso().getValue());
-                    System.out.println("Fecha Autorización: "+resp.getFechaAutorizacion().getValue());
-                    this.MONITOR.setMensajeNC("Fecha Autorización: "+resp.getFechaAutorizacion().getValue());
-                    System.out.println("Id. Error: "+resp.getIdError().getValue());
-                    this.MONITOR.setMensajeNC("Id. Error: "+resp.getIdError().getValue());
-                    System.out.println("Origen: "+resp.getOrigen().getValue());
-                    this.MONITOR.setMensajeNC("Origen: "+resp.getOrigen().getValue());
-                    System.out.println("Result: "+resp.getResult().getValue());
-                    this.MONITOR.setMensajeNC("Result: "+resp.getResult().getValue());
-                    System.out.println("Result Data: "+resp.getResultData().getValue());
-                    this.MONITOR.setMensajeNC("Result Data: "+resp.getResultData().getValue());
+                    System.out.println("No. de autorización: "+respuesta.getAutorizacion().getValue());
+                    this.frmMonitor.setMensajeNC("No. de autorización: "+respuesta.getAutorizacion().getValue());
+                    System.out.println("Clave de acceso: "+respuesta.getClaveAcceso().getValue());
+                    this.frmMonitor.setMensajeNC("Clave de acceso: "+respuesta.getClaveAcceso().getValue());
+                    System.out.println("Fecha Autorización: "+respuesta.getFechaAutorizacion().getValue());
+                    this.frmMonitor.setMensajeNC("Fecha Autorización: "+respuesta.getFechaAutorizacion().getValue());
+                    System.out.println("Id. Error: "+respuesta.getIdError().getValue());
+                    this.frmMonitor.setMensajeNC("Id. Error: "+respuesta.getIdError().getValue());
+                    System.out.println("Origen: "+respuesta.getOrigen().getValue());
+                    this.frmMonitor.setMensajeNC("Origen: "+respuesta.getOrigen().getValue());
+                    System.out.println("Result: "+respuesta.getResult().getValue());
+                    this.frmMonitor.setMensajeNC("Result: "+respuesta.getResult().getValue());
+                    System.out.println("Result Data: "+respuesta.getResultData().getValue());
+                    this.frmMonitor.setMensajeNC("Result Data: "+respuesta.getResultData().getValue());
 
-                    if(resp.getAutorizacion().getValue()!=null)
+                    if(respuesta.getAutorizacion().getValue()!=null)
                     {
                         
-                        this.MONITOR.setMensajeNC("[info] - Actualizando registros...");
+                        this.frmMonitor.setMensajeNC("[info] - Actualizando registros...");
                         System.out.println("[info] - Actualizando registros...");
                         //llamada del metodo para actualizar registro
-                        int reg=actualizarNC(con, resp,arrayAutorizarNotaCredito.get(i).getInfoTributaria().getValue());
+                        int reg=actualizarNC(con, respuesta,arrayAutorizarNotaCredito.get(i).getInfoTributaria().getValue());
                         System.out.println("[info] - Registros actualizados : "+reg);
-                        this.MONITOR.setMensajeNC("[info] - Registros actualizados : "+reg);
+                        this.frmMonitor.setMensajeNC("[info] - Registros actualizados : "+reg);
                          
                     }
-                    this.MONITOR.setMensajeNC("[info] - Registrando en el log...");
+                    this.frmMonitor.setMensajeNC("[info] - Registrando en el log...");
                     System.out.println("[info] - Registrando en el log...");
                     //llamada del metodo para el registro del log
-                    notificarResultado(con, resp,arrayAutorizarNotaCredito.get(i).getInfoTributaria().getValue(),String.valueOf((stop-start)));
-                    this.MONITOR.setMensajeNC("[info] - Evento capturado en el historial");
+                    notificarResultado(con, respuesta,arrayAutorizarNotaCredito.get(i).getInfoTributaria().getValue(),String.valueOf((stop-start)));
+                    this.frmMonitor.setMensajeNC("[info] - Evento capturado en el historial");
                     System.out.println("[info] - Evento capturado en el historial");
                     
                 }//final del FOR de envío
         }
         catch(Exception ex)
         {
-            this.MONITOR.setMensajeNC("[error] - Error general al enviar a autorizar");
+            this.frmMonitor.setMensajeNC("[error] - Error general al enviar a autorizar");
             System.out.println("[error] - Error general al enviar a autorizar");
         }
         finally
         {
-            this.MONITOR.setMensajeNC("[info] - Cancelando envío...");
+            this.frmMonitor.setMensajeNC("[info] - Cancelando envío...");
             System.out.println("[info] - Cancelando envío...");
         }
         return enviadas;
@@ -446,27 +432,26 @@ public final class NotaCreditoDAO {
         JAXBContext jaxbContext=null;
         try{
             System.out.println("[info] - Generando xml...");  
-            this.MONITOR.setMensajeNC("[info] - Generando xml...");
+            this.frmMonitor.setMensajeNC("[info] - Generando xml...");
  
             jaxb_autoriza=new JAXBElement(new QName(AutorizarNotaCredito.class.getSimpleName()),AutorizarNotaCredito.class,autorizar);
             jaxbContext=JAXBContext.newInstance(AutorizarNotaCredito.class);
             m=jaxbContext.createMarshaller();
             m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT,true);
-            rutaXml=this.MONITOR.dir_nc+"AutorizarFactura"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
+            rutaXml=this.frmMonitor.dir_nc+"AutorizarNotaCredito"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
             m.marshal(jaxb_autoriza, new File (rutaXml)); 
 
             System.out.println("[info] - xml generado "+rutaXml);  
-            this.MONITOR.setMensajeNC("[info] - xml generado "+rutaXml);
+            this.frmMonitor.setMensajeNC("[info] - xml generado "+rutaXml);
     
-    }
-    catch(JAXBException ex){
-        System.out.println("[error] - Error al generar xml");  
-            this.MONITOR.setMensajeNC("[error] - Error al generar xml");}
-    finally{}
-        
-        
-        
-    
+        }
+        catch(JAXBException ex)
+        {
+            System.out.println("[error] - Error al generar xml");  
+            this.frmMonitor.setMensajeNC("[error] - Error al generar xml");
+        }
+        finally{}
+
     }
     
     private int actualizarNC(ConexionBD con,Response resp,InfoTributaria info) {
@@ -485,7 +470,7 @@ public final class NotaCreditoDAO {
         }
         catch(SQLException ex)
         {
-            this.MONITOR.setMensajeNC("[error] - Error al actualizar registros");
+            this.frmMonitor.setMensajeNC("[error] - Error al actualizar registros");
             System.out.println("[error] - Error al actualizar registros");
         }
         finally
@@ -523,11 +508,11 @@ public final class NotaCreditoDAO {
         
 //        String sp="CALL MAIL_FILES(administrador.tevcol,michael.beltran@tevcol.com.ec,?,null,null,null,null)";
 //        CallableStatement call=con.getCon().prepareCall(sp);
-//        String  mensaje="Se ha generado Autorización del SRI:\nNo. Autorización: "+resp.getAutorizacion().getValue()
-//                +"\nClave de Acceso: "+resp.getClaveAcceso().getValue()
-//                +"\nFecha Autorización: "+resp.getFechaAutorizacion().getValue()
-//                +"\nResult: "+resp.getResult().getValue()
-//                +"\nResult Data: "+resp.getResultData().getValue();
+//        String  mensaje="Se ha generado Autorización del SRI:\nNo. Autorización: "+respuesta.getAutorizacion().getValue()
+//                +"\nClave de Acceso: "+respuesta.getClaveAcceso().getValue()
+//                +"\nFecha Autorización: "+respuesta.getFechaAutorizacion().getValue()
+//                +"\nResult: "+respuesta.getResult().getValue()
+//                +"\nResult Data: "+respuesta.getResultData().getValue();
 //        
 //        call.setString(1,mensaje);
 //  
@@ -537,7 +522,7 @@ public final class NotaCreditoDAO {
         }
         catch(SQLException sqle)
         {
-            this.MONITOR.setMensajeNC("[error] - Error al insertar notificación en el log");
+            this.frmMonitor.setMensajeNC("[error] - Error al insertar notificación en el log");
             System.out.println("[error] - Error al insertar notificación en el log");
         }
         finally
@@ -638,12 +623,12 @@ public final class NotaCreditoDAO {
         return respuesta;
     }
     
-    public frmMonitor getMONITOR() {
-        return MONITOR;
+    public frmMonitor getMonitor() {
+        return frmMonitor;
     }
 
-    public void setMONITOR(frmMonitor MONITOR) {
-        this.MONITOR = MONITOR;
+    public void setMonitor(frmMonitor monitor) {
+        this.frmMonitor = monitor;
     }
 
     
