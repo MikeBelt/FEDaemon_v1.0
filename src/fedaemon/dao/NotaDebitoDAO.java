@@ -1,23 +1,23 @@
 
-package fedaemonfinal.dao;
+package fedaemon.dao;
 
 
-import fedaemonfinal.frms.frmMonitor;
-import fedaemonfinal.infact.ArrayOfImpuesto;
-import fedaemonfinal.infact.ArrayOfInfoAdicional;
-import fedaemonfinal.infact.ArrayOfMotivo;
-import fedaemonfinal.infact.AutorizarNotaDebito;
-import fedaemonfinal.infact.CloudAutorizarComprobante;
-import fedaemonfinal.infact.IcloudAutorizarComprobante;
-import fedaemonfinal.infact.Impuesto;
-import fedaemonfinal.infact.InfoAdicional;
-import fedaemonfinal.infact.InfoNotaDebito;
-import fedaemonfinal.infact.InfoTributaria;
-import fedaemonfinal.infact.Motivo;
-import fedaemonfinal.infact.ObjectFactory;
-import fedaemonfinal.infact.Response;
-import fedaemonfinal.util.ConexionBD;
-import fedaemonfinal.util.InfoTrib;
+import fedaemon.frms.frmMonitor;
+import fedaemon.infact.produccion.ArrayOfImpuesto;
+import fedaemon.infact.produccion.ArrayOfInfoAdicional;
+import fedaemon.infact.produccion.ArrayOfMotivo;
+import fedaemon.infact.produccion.AutorizarNotaDebito;
+import fedaemon.infact.produccion.CloudAutorizarComprobante;
+import fedaemon.infact.produccion.IcloudAutorizarComprobante;
+import fedaemon.infact.produccion.Impuesto;
+import fedaemon.infact.produccion.InfoAdicional;
+import fedaemon.infact.produccion.InfoNotaDebito;
+import fedaemon.infact.produccion.InfoTributaria;
+import fedaemon.infact.produccion.Motivo;
+import fedaemon.infact.produccion.ObjectFactory;
+import fedaemon.infact.produccion.Response;
+import fedaemon.util.ConexionBD;
+import fedaemon.util.InfoDocumento;
 import java.io.File;
 import java.math.BigDecimal;
 import java.net.InetAddress;
@@ -45,42 +45,32 @@ public final class NotaDebitoDAO {
     
      protected frmMonitor frmMonitor;
     
-     public int consultarNotasDebitoPendientes(ConexionBD con)throws Exception{
+          
+    public int consultarNotasDebitoPendientes(ConexionBD con,String coddoc) {
         int result=0;
-        String select="SELECT COUNT(*) FROM INVE_NCND_FE_DAT "
-                + "WHERE CODDOC='05' AND NUME_AUTO_INVE_DOCU IS NULL AND AMBIENTE=2 "
-//                + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'"
-                + "GROUP BY ESTAB,PTOEMI,SECUENCIAL";
-        Statement st= con.getCon().createStatement();
-        ResultSet rs=st.executeQuery(select);
-        while(rs.next())
+        String sentencia="{call SP_FACTCONSULTAPENDIENTES(?,?)}";
+        CallableStatement cs=null;
+        try
         {
-           result++;
+            cs=con.getCon().prepareCall(sentencia);
+
+            cs.setString(1, coddoc);
+            cs.registerOutParameter(2, java.sql.Types.NUMERIC);
+
+            cs.execute();
+
+            result=cs.getInt(2);
         }
-         rs.close();
-        return result;
-    }
-     
-     public int consultarNotasDebitoPendientes(ConexionBD con,String coddoc) {
-    int result=0;
-    String sentencia="{call SP_FACTCONSULTAPENDIENTES(?,?)}";
-    CallableStatement cs=null;
-    try{
-    cs=con.getCon().prepareCall(sentencia);
-    
-    cs.setString(1, coddoc);
-    cs.registerOutParameter(2, java.sql.Types.NUMERIC);
-    
-    cs.execute();
-    
-    result=cs.getInt(2);
-    }catch(SQLException ex){ex.printStackTrace();}
-    finally{
-        try{
-         if(cs!=null)
-            cs.close();
-      }catch(SQLException se2){
-      }
+        catch(SQLException ex){ex.printStackTrace();}
+        finally
+        {
+         try
+         {
+            if(cs!=null)
+                cs.close();
+         }
+         catch(SQLException se2)
+         {}
     }
     
     return result;
@@ -101,8 +91,8 @@ public final class NotaDebitoDAO {
                 + "ORDER BY FECHAEMISION ASC,SECUENCIAL ASC";
         Statement st=null;
         ResultSet rs=null;
-        InfoTrib ND=null;
-        ArrayList<InfoTrib> arrayInfoTrib=null;
+        InfoDocumento ND=null;
+        ArrayList<InfoDocumento> arrayInfoDoc=null;
         ArrayList<AutorizarNotaDebito> arrayAutorizarNotaDebito=null;
         int band=0;
         long start=0;
@@ -111,14 +101,14 @@ public final class NotaDebitoDAO {
         
         try{
             factory = new ObjectFactory();
-            arrayInfoTrib=new ArrayList<>();
+            arrayInfoDoc=new ArrayList<>();
             arrayAutorizarNotaDebito=new ArrayList<>();
             st= con.getCon().createStatement();
             rs=st.executeQuery(select);
             
         while(rs.next())
         {   
-            ND=new InfoTrib();
+            ND=new InfoDocumento();
             ND.setLineas(rs.getString("LINEAS"));
             ND.setEstab(rs.getString("ESTAB"));
             ND.setPtoEmi(rs.getString("PTOEMI"));
@@ -126,15 +116,15 @@ public final class NotaDebitoDAO {
             ND.setTotalSinImpuesto(rs.getDouble("TOTALSINIMPUESTO"));
             ND.setTotalDescuento(rs.getDouble("DESCUENTO"));
             ND.setTotalModificacion(rs.getDouble("VALORMODIFICACION"));
-            arrayInfoTrib.add(ND);
+            arrayInfoDoc.add(ND);
         }
         rs.close();
         st.close();
         
-        for(int i=0;i<arrayInfoTrib.size();i++){
+        for(int i=0;i<arrayInfoDoc.size();i++){
             this.frmMonitor.limpiaND();
-            System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
-            this.frmMonitor.setMensajeND("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
+            System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayInfoDoc.size());
+            this.frmMonitor.setMensajeND("[info] - Registro #"+(i+1)+ " de "+arrayInfoDoc.size());
             InfoTributaria info_t=new InfoTributaria();
             InfoNotaDebito info_nd=new InfoNotaDebito();
             ArrayOfMotivo array_motivo=new ArrayOfMotivo();
@@ -143,9 +133,9 @@ public final class NotaDebitoDAO {
         try{
              String filtro="SELECT * FROM INVE_NCND_FE_DAT WHERE NUME_AUTO_INVE_DOCU IS NULL AND CODDOC='05' AND AMBIENTE=2 "
     //                         + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101' "
-                    +" AND ESTAB="+arrayInfoTrib.get(i).getEstab()
-                    +" AND PTOEMI="+arrayInfoTrib.get(i).getPtoEmi()
-                    +" AND SECUENCIAL="+arrayInfoTrib.get(i).getSecuencial();
+                    +" AND ESTAB="+arrayInfoDoc.get(i).getEstab()
+                    +" AND PTOEMI="+arrayInfoDoc.get(i).getPtoEmi()
+                    +" AND SECUENCIAL="+arrayInfoDoc.get(i).getSecuencial();
              st=con.getCon().createStatement();
              rs=st.executeQuery(filtro);
                  
@@ -325,7 +315,7 @@ public final class NotaDebitoDAO {
         autorizar.setInfoAdicional(jbArrayOfInfoAdicional);
 
         //generando el xml
-        generarXML(autorizar,arrayInfoTrib.get(i).getEstab(),arrayInfoTrib.get(i).getPtoEmi(),arrayInfoTrib.get(i).getSecuencial() );
+        generarXML(autorizar,arrayInfoDoc.get(i).getEstab(),arrayInfoDoc.get(i).getPtoEmi(),arrayInfoDoc.get(i).getSecuencial() );
         
         arrayAutorizarNotaDebito.add(autorizar);
         }        
@@ -337,7 +327,7 @@ public final class NotaDebitoDAO {
             for(int i=0;i<arrayAutorizarNotaDebito.size();i++){
                 
 //              
-                this.frmMonitor.setMensajeND("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
+                this.frmMonitor.setMensajeND("[info] - No. Lineas : "+arrayInfoDoc.get(i).getLineas());
                 System.out.println("[info] - Enviando petición de autorización al WS...");
                 this.frmMonitor.setMensajeND("[info] - Enviando petición de autorización al WS...");
                 //obteniendo el tiempo inicial para el tiempo de espera estimado
@@ -354,6 +344,8 @@ public final class NotaDebitoDAO {
                 System.out.println("[info] - Tiempo de respuesta: "+(stop-start)+" seg");
                 this.frmMonitor.setMensajeND("[info] - Tiempo de respuesta: "+(stop-start)+" seg");       
                 enviadas++;
+                System.out.println(marco);
+                this.frmMonitor.setMensajeND(marco);
                 System.out.println("No. de autorización: "+respuesta.getAutorizacion().getValue());
                 this.frmMonitor.setMensajeND("No. de autorización: "+respuesta.getAutorizacion().getValue()); 
                 System.out.println("Clave de acceso: "+respuesta.getClaveAcceso().getValue());
@@ -367,7 +359,9 @@ public final class NotaDebitoDAO {
                 System.out.println("Result: "+respuesta.getResult().getValue());
                 this.frmMonitor.setMensajeND("Result: "+respuesta.getResult().getValue()); 
                 System.out.println("Result Data: "+respuesta.getResultData().getValue());
-                this.frmMonitor.setMensajeND("Result Data: "+respuesta.getResultData().getValue()); 
+                this.frmMonitor.setMensajeND("Result Data: "+respuesta.getResultData().getValue());
+                System.out.println(marco);
+                this.frmMonitor.setMensajeND(marco);
 
                     if(respuesta.getAutorizacion().getValue()!=null)
                     {
@@ -416,7 +410,7 @@ public final class NotaDebitoDAO {
                     jaxbContext=JAXBContext.newInstance(AutorizarNotaDebito.class);
                     m=jaxbContext.createMarshaller();
                     m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT,true);
-                    rutaXml=this.frmMonitor.dir_nd+"AutorizarNotaDebito"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
+                    rutaXml=this.frmMonitor.getServicio().getDirectorioNotasDebito()+"AutorizarNotaDebito"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
                     m.marshal(jaxb_autoriza, new File (rutaXml)); 
 
                     System.out.println("[info] - xml generado "+rutaXml);  

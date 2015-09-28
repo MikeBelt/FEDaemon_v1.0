@@ -1,27 +1,27 @@
 
-package fedaemonfinal.dao;
+package fedaemon.dao;
 
 
-import fedaemonfinal.frms.frmMonitor;
-import fedaemonfinal.infact.ArrayOfDetAdicional;
-import fedaemonfinal.infact.ArrayOfDetalle;
-import fedaemonfinal.infact.ArrayOfImpuesto;
-import fedaemonfinal.infact.ArrayOfInfoAdicional;
-import fedaemonfinal.infact.ArrayOfTotalImpuesto;
-import fedaemonfinal.infact.AutorizarFactura;
-import fedaemonfinal.infact.CloudAutorizarComprobante;
-import fedaemonfinal.infact.DetAdicional;
-import fedaemonfinal.infact.Detalle;
-import fedaemonfinal.infact.IcloudAutorizarComprobante;
-import fedaemonfinal.infact.Impuesto;
-import fedaemonfinal.infact.InfoAdicional;
-import fedaemonfinal.infact.InfoFactura;
-import fedaemonfinal.infact.InfoTributaria;
-import fedaemonfinal.infact.ObjectFactory;
-import fedaemonfinal.infact.Response;
-import fedaemonfinal.infact.TotalImpuesto;
-import fedaemonfinal.util.ConexionBD;
-import fedaemonfinal.util.InfoTrib;
+import fedaemon.frms.frmMonitor;
+import fedaemon.infact.produccion.ArrayOfDetAdicional;
+import fedaemon.infact.produccion.ArrayOfDetalle;
+import fedaemon.infact.produccion.ArrayOfImpuesto;
+import fedaemon.infact.produccion.ArrayOfInfoAdicional;
+import fedaemon.infact.produccion.ArrayOfTotalImpuesto;
+import fedaemon.infact.produccion.AutorizarFactura;
+import fedaemon.infact.produccion.CloudAutorizarComprobante;
+import fedaemon.infact.produccion.DetAdicional;
+import fedaemon.infact.produccion.Detalle;
+import fedaemon.infact.produccion.IcloudAutorizarComprobante;
+import fedaemon.infact.produccion.Impuesto;
+import fedaemon.infact.produccion.InfoAdicional;
+import fedaemon.infact.produccion.InfoFactura;
+import fedaemon.infact.produccion.InfoTributaria;
+import fedaemon.infact.produccion.ObjectFactory;
+import fedaemon.infact.produccion.Response;
+import fedaemon.infact.produccion.TotalImpuesto;
+import fedaemon.util.ConexionBD;
+import fedaemon.util.InfoDocumento;
 import java.io.File;
 import java.math.BigDecimal;
 import java.net.InetAddress;
@@ -46,40 +46,26 @@ import javax.xml.namespace.QName;
  */
 public final class FacturaDAO {
     
-    protected frmMonitor frmMonitor;
+    private frmMonitor frmMonitor;
     
-    public int consultarFacturasPendientes(ConexionBD con)throws Exception{
-    int result=0;
-    String select="SELECT COUNT(*),ESTAB,PTOEMI,SECUENCIAL FROM INVE_DOCUMENTOS_FE_DAT "
-            + "WHERE NUME_AUTO_INVE_DOCU IS NULL AND CODDOC='01' AND AMBIENTE=2 "
-//            + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101' "
-            + "GROUP BY ESTAB,PTOEMI,SECUENCIAL";
-        Statement st= con.getCon().createStatement();
-        ResultSet rs=st.executeQuery(select);
-        while(rs.next())
-        {
-        result++;
-        }
-        
-        rs.close();
-
-    return result;
-    }
     
-    public int consultarFacturasPendientes(ConexionBD con,String coddoc) {
+  
+    
+    public int consultarFacturasPendientes(ConexionBD con,String coddoc,String ambiente) {
     int result=0;
-    String sentencia="{call SP_FACTCONSULTAPENDIENTES(?,?)}";
+    String sentencia="{call SP_FACTCONSULTAPENDIENTES(?,?,?)}";
     CallableStatement cs=null;
     try
     {
         cs=con.getCon().prepareCall(sentencia);
 
         cs.setString(1, coddoc);
-        cs.registerOutParameter(2, java.sql.Types.NUMERIC);
+        cs.setString(2, ambiente);
+        cs.registerOutParameter(3, java.sql.Types.NUMERIC);
 
         cs.execute();
 
-        result=cs.getInt(2);
+        result=cs.getInt(3);
     }catch(SQLException ex)
     {
         System.out.println("[error] - error de CallableStatement de consoulta");
@@ -100,8 +86,8 @@ public final class FacturaDAO {
 
         int enviadas=0;
         ObjectFactory factory =null;
-        InfoTrib fra=null;
-        ArrayList<InfoTrib> arrayInfoTrib=null;
+        InfoDocumento fra=null;
+        ArrayList<InfoDocumento> arrayInfoDoc=null;
         ArrayList<AutorizarFactura> arrayAutorizarFactura=null;
         InfoTributaria infoTributaria=null;
         InfoFactura infoFactura=null;
@@ -128,30 +114,30 @@ public final class FacturaDAO {
         
         try{
         factory = new ObjectFactory();
-        arrayInfoTrib=new ArrayList<>();
+        arrayInfoDoc=new ArrayList<>();
         arrayAutorizarFactura=new ArrayList<>();
         st= con.getCon().createStatement();
         rs=st.executeQuery(select);
         //Almacenando en el ArrayList los documentos que se van a enviar
         while(rs.next())
         {   
-            fra=new InfoTrib();
+            fra=new InfoDocumento();
             fra.setLineas(rs.getString("LINEAS"));
             fra.setEstab(rs.getString("ESTAB"));
             fra.setPtoEmi(rs.getString("PTOEMI"));
             fra.setSecuencial(rs.getString("SECUENCIAL"));
             fra.setTotalSinImpuesto(rs.getDouble("TOTALSINIMPUESTOS"));
             fra.setTotalDescuento(rs.getDouble("TOTALDESCUENTO"));
-            arrayInfoTrib.add(fra);
+            arrayInfoDoc.add(fra);
         }
         rs.close();
         st.close();
         
             //Recorriendo el arreglo que contiene documentos listos para enviar
-            for(int i=0;i<arrayInfoTrib.size();i++){
+            for(int i=0;i<arrayInfoDoc.size();i++){
             this.frmMonitor.limpiaFacturas();
-            System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
-            this.frmMonitor.setMensajeFacturas("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
+            System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayInfoDoc.size());
+            this.frmMonitor.setMensajeFacturas("[info] - Registro #"+(i+1)+ " de "+arrayInfoDoc.size());
             infoTributaria=new InfoTributaria();
             infoFactura=new InfoFactura();
             arrayInfoAdicional=new ArrayOfInfoAdicional();
@@ -162,9 +148,9 @@ public final class FacturaDAO {
             try{
                 
                 filtro="SELECT * FROM INVE_DOCUMENTOS_FE_DAT WHERE NUME_AUTO_INVE_DOCU IS NULL AND CODDOC='01' AND AMBIENTE=2 "
-                        +" AND ESTAB="+arrayInfoTrib.get(i).getEstab()
-                        +" AND PTOEMI="+arrayInfoTrib.get(i).getPtoEmi()
-                        +" AND SECUENCIAL="+arrayInfoTrib.get(i).getSecuencial();
+                        +" AND ESTAB="+arrayInfoDoc.get(i).getEstab()
+                        +" AND PTOEMI="+arrayInfoDoc.get(i).getPtoEmi()
+                        +" AND SECUENCIAL="+arrayInfoDoc.get(i).getSecuencial();
                 st=con.getCon().createStatement();
                 rs=st.executeQuery(filtro);
                 while(rs.next()){
@@ -214,7 +200,7 @@ public final class FacturaDAO {
                         
                         //============================ TOTAL DE IMPUESTO DE LA FACTURA =================================
                         TotalImpuesto total_imp=new TotalImpuesto();
-                        total_imp.setBaseImponible(BigDecimal.valueOf(arrayInfoTrib.get(i).getTotalSinImpuesto()));
+                        total_imp.setBaseImponible(BigDecimal.valueOf(arrayInfoDoc.get(i).getTotalSinImpuesto()));
                         total_imp.setCodigo(rs.getInt("CODIGO"));
                         total_imp.setCodigoPorcentaje(rs.getInt("CODIGOPORCENTAJE"));
                         JAXBElement<String> tarifa=factory.createTotalImpuestoTarifa(rs.getString("TARIFA"));
@@ -228,8 +214,8 @@ public final class FacturaDAO {
 
                         infoFactura.setTotalConImpuestos(arrayTotalImpuestos);
                         
-                        infoFactura.setTotalDescuento(BigDecimal.valueOf(arrayInfoTrib.get(i).getTotalDescuento()));
-                        infoFactura.setTotalSinImpuestos(BigDecimal.valueOf(arrayInfoTrib.get(i).getTotalSinImpuesto()));
+                        infoFactura.setTotalDescuento(BigDecimal.valueOf(arrayInfoDoc.get(i).getTotalDescuento()));
+                        infoFactura.setTotalSinImpuestos(BigDecimal.valueOf(arrayInfoDoc.get(i).getTotalSinImpuesto()));
 
 
                         //==================================== INFORMACION ADICIONAL =============================
@@ -366,8 +352,8 @@ public final class FacturaDAO {
                 st.close();
             }
             
-            System.out.println("[info] - FACTURA "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
-            this.frmMonitor.setMensajeFacturas("[info] - FACTURA "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
+            System.out.println("[info] - FACTURA "+arrayInfoDoc.get(i).getEstab()+"-"+arrayInfoDoc.get(i).getPtoEmi()+"-"+arrayInfoDoc.get(i).getSecuencial());
+            this.frmMonitor.setMensajeFacturas("[info] - FACTURA "+arrayInfoDoc.get(i).getEstab()+"-"+arrayInfoDoc.get(i).getPtoEmi()+"-"+arrayInfoDoc.get(i).getSecuencial());
             AutorizarFactura autorizar=new AutorizarFactura();
             JAXBElement<InfoTributaria> jbInfoTrib=factory.createAutorizarFacturaInfoTributaria(infoTributaria);
             autorizar.setInfoTributaria(jbInfoTrib);
@@ -379,7 +365,7 @@ public final class FacturaDAO {
             autorizar.setInfoAdicional(jbInfoAdicional);
 
             //generando el xml
-            generarXML(autorizar,arrayInfoTrib.get(i).getEstab(),arrayInfoTrib.get(i).getPtoEmi(),arrayInfoTrib.get(i).getSecuencial());
+            generarXML(autorizar,arrayInfoDoc.get(i).getEstab(),arrayInfoDoc.get(i).getPtoEmi(),arrayInfoDoc.get(i).getSecuencial());
             
             
             arrayAutorizarFactura.add(autorizar);
@@ -390,8 +376,8 @@ public final class FacturaDAO {
             respuesta=null;
             //Enviar documento empaquetado al webservice de SRI para autorizar
             for(int i=0;i<arrayAutorizarFactura.size();i++){
-                System.out.println("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
-                this.frmMonitor.setMensajeFacturas("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
+                System.out.println("[info] - No. Lineas : "+arrayInfoDoc.get(i).getLineas());
+                this.frmMonitor.setMensajeFacturas("[info] - No. Lineas : "+arrayInfoDoc.get(i).getLineas());
                 System.out.println("[info] - Enviando petición de autorización al WS...");
                 this.frmMonitor.setMensajeFacturas("[info] - Enviando petición de autorización al WS...");
                 
@@ -515,7 +501,7 @@ public final class FacturaDAO {
             jaxbContext=JAXBContext.newInstance(AutorizarFactura.class);
             m=jaxbContext.createMarshaller();
             m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT,true);
-            rutaXml=this.frmMonitor.dir_facturas+"AutorizarFactura"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
+            rutaXml=this.frmMonitor.getServicio().getDirectorioFacturas()+"AutorizarFactura"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
             m.marshal(jaxb_autoriza, new File (rutaXml)); 
 
             System.out.println("[info] - xml generado "+rutaXml);  

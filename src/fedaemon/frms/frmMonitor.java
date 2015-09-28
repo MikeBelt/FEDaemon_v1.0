@@ -1,12 +1,13 @@
 
 
-package fedaemonfinal.frms;
+package fedaemon.frms;
 
-import fedaemonfinal.util.ConexionBD;
-import fedaemonfinal.hilos.ThreadAutorizarNotasCredito;
-import fedaemonfinal.hilos.ThreadAutorizarNotasDebito;
-import fedaemonfinal.hilos.ThreadAutorizarComprobantesRetencion;
-import fedaemonfinal.hilos.ThreadAutorizarFacturas;
+import fedaemon.hilos.ThreadAutorizarComprobantesRetencion;
+import fedaemon.hilos.ThreadAutorizarFacturas;
+import fedaemon.hilos.ThreadAutorizarNotasCredito;
+import fedaemon.hilos.ThreadAutorizarNotasDebito;
+import fedaemon.util.ConexionBD;
+import fedaemon.util.Servicio;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.net.UnknownHostException;
@@ -18,7 +19,7 @@ import java.util.logging.Logger;
  *
  * @author Mike
  */
-public class frmMonitor extends javax.swing.JFrame {
+public final class frmMonitor extends javax.swing.JFrame {
 
     /**
      * Creates new form frmMonitor
@@ -105,29 +106,29 @@ public class frmMonitor extends javax.swing.JFrame {
     public void lanzarHilos(){
     System.out.println("Iniciando el proceso demonio... ");
         
-            t_facturas=new ThreadAutorizarFacturas();
-            t_retenciones=new ThreadAutorizarComprobantesRetencion();
-            t_notas_credito=new ThreadAutorizarNotasCredito();
-            t_notas_debito=new ThreadAutorizarNotasDebito(); 
+            threadAutorizarFacturas=new ThreadAutorizarFacturas();
+            threadAutorizarRetenciones=new ThreadAutorizarComprobantesRetencion();
+            threadAutorizarNotaCredito=new ThreadAutorizarNotasCredito();
+            threadAutorizarNotaDebito=new ThreadAutorizarNotasDebito(); 
             
-            t_facturas.setCONEXION(CONEXION);
-            t_facturas.setMONITOR(this);
-            t_retenciones.setCONEXION(CONEXION);
-            t_retenciones.setMONITOR(this);
-            t_notas_credito.setCONEXION(CONEXION);
-            t_notas_credito.setMONITOR(this);
-            t_notas_debito.setCONEXION(CONEXION);
-            t_notas_debito.setMONITOR(this);
+            threadAutorizarFacturas.setConexion(conexionBD);
+            threadAutorizarFacturas.setMonitor(this);
+            threadAutorizarRetenciones.setConexion(conexionBD);
+            threadAutorizarRetenciones.setMonitor(this);
+            threadAutorizarNotaCredito.setConexion(conexionBD);
+            threadAutorizarNotaCredito.setMonitor(this);
+            threadAutorizarNotaDebito.setConexion(conexionBD);
+            threadAutorizarNotaDebito.setMonitor(this);
             
-            this.setTitle(this.getTitle().concat(" - "+CONEXION.getBase()+" - "+CONEXION.getUsr()));
+            this.setTitle(this.getTitle().concat(" - "+conexionBD.getBase()+" - "+conexionBD.getUsr()));
 
-            t_facturas.start();
+            threadAutorizarFacturas.start();
             this.cambiaEstadoPanel("jPFacturas", "Facturas [EJECUTANDO]");
-            t_retenciones.start();
+            threadAutorizarRetenciones.start();
             this.cambiaEstadoPanel("jPRetencion", "Retenciones [EJECUTANDO]");
-            t_notas_credito.start();
+            threadAutorizarNotaCredito.start();
             this.cambiaEstadoPanel("jPNC", "Notas de Crédito [EJECUTANDO]");
-            t_notas_debito.start();
+            threadAutorizarNotaDebito.start();
             this.cambiaEstadoPanel("jPND", "Notas de Débito [EJECUTANDO]");
     
     }
@@ -303,23 +304,23 @@ public class frmMonitor extends javax.swing.JFrame {
 
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
         try {
-             if(CONEXION!=null)
-                 CONEXION.conectar();
+             if(conexionBD!=null)
+                 conexionBD.conectar();
              
-            if(t_facturas!=null )
-                if(t_facturas.isAlive())
-                {t_facturas.fa.cambiaEstado(CONEXION, "APAGADO", 0);}
-            if(t_retenciones!=null )
-                if(t_retenciones.isAlive())
-                {t_retenciones.ret.cambiaEstado(CONEXION, "APAGADO", 0);}
-            if(t_notas_credito!=null)
-                if(t_notas_credito.isAlive())
-                {   t_notas_credito.notaCreditoDAO.cambiaEstado(CONEXION, "APAGADO", 0);}
-            if(t_notas_debito!=null)
-                if(t_notas_debito.isAlive())
-                {t_notas_debito.ret.cambiaEstado(CONEXION, "APAGADO", 0);}
+            if(threadAutorizarFacturas!=null )
+                if(threadAutorizarFacturas.isAlive())
+                {threadAutorizarFacturas.facturaDAO.cambiaEstado(conexionBD, "APAGADO", 0);}
+            if(threadAutorizarRetenciones!=null )
+                if(threadAutorizarRetenciones.isAlive())
+                {threadAutorizarRetenciones.retencionDAO.cambiaEstado(conexionBD, "APAGADO", 0);}
+            if(threadAutorizarNotaCredito!=null)
+                if(threadAutorizarNotaCredito.isAlive())
+                {   threadAutorizarNotaCredito.notaCreditoDAO.cambiaEstado(conexionBD, "APAGADO", 0);}
+            if(threadAutorizarNotaDebito!=null)
+                if(threadAutorizarNotaDebito.isAlive())
+                {threadAutorizarNotaDebito.notaDebitoDAO.cambiaEstado(conexionBD, "APAGADO", 0);}
            
-            CONEXION.desconectar();
+            conexionBD.desconectar();
             
             
         } catch (SQLException ex) {
@@ -330,13 +331,13 @@ public class frmMonitor extends javax.swing.JFrame {
             Logger.getLogger(frmMonitor.class.getName()).log(Level.SEVERE, null, ex);
         }finally{
         
-        t_facturas.stop();
+        threadAutorizarFacturas.stop();
         this.cambiaEstadoPanel("jPFacturas", "Facturas [APAGADO]");
-        t_retenciones.stop();
+        threadAutorizarRetenciones.stop();
         this.cambiaEstadoPanel("jPRetencion", "Retenciones [APAGADO]");
-        t_notas_credito.stop();
+        threadAutorizarNotaCredito.stop();
         this.cambiaEstadoPanel("jPNC", "Notas de Crédito [APAGADO]");
-        t_notas_debito.stop();
+        threadAutorizarNotaDebito.stop();
         this.cambiaEstadoPanel("jPND", "Notas de Débito [APAGADO]");
     
         
@@ -378,15 +379,13 @@ public class frmMonitor extends javax.swing.JFrame {
         });
     }
 
-    protected ConexionBD CONEXION;
-    ThreadAutorizarFacturas t_facturas;
-    ThreadAutorizarComprobantesRetencion t_retenciones;
-    ThreadAutorizarNotasCredito t_notas_credito;
-    ThreadAutorizarNotasDebito t_notas_debito;
-    public String dir_facturas=null;
-    public String dir_retencion=null;
-    public String dir_nc=null;
-    public String dir_nd=null;
+    private ConexionBD conexionBD;
+    ThreadAutorizarFacturas threadAutorizarFacturas;
+    ThreadAutorizarComprobantesRetencion threadAutorizarRetenciones;
+    ThreadAutorizarNotasCredito threadAutorizarNotaCredito;
+    ThreadAutorizarNotasDebito threadAutorizarNotaDebito;
+    private Servicio servicio;
+   
             
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel jPFacturas;
@@ -403,11 +402,25 @@ public class frmMonitor extends javax.swing.JFrame {
     private javax.swing.JTextArea jTextArea4;
     // End of variables declaration//GEN-END:variables
 
-    public ConexionBD getCONEXION() {
-        return CONEXION;
+    public ConexionBD getConexion() {
+        return conexionBD;
     }
 
-    public void setCONEXION(ConexionBD CONEXION) {
-        this.CONEXION = CONEXION;
+    public void setConexion(ConexionBD conexion) {
+        this.conexionBD = conexion;
+    }
+
+    /**
+     * @return the servicio
+     */
+    public Servicio getServicio() {
+        return servicio;
+    }
+
+    /**
+     * @param servicio the servicio to set
+     */
+    public void setServicio(Servicio servicio) {
+        this.servicio = servicio;
     }
 }

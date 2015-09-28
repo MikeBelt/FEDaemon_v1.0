@@ -1,4 +1,4 @@
-package fedaemonfinal.util;
+package fedaemon.util;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

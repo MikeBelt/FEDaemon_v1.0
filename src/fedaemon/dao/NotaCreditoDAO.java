@@ -1,25 +1,25 @@
 
-package fedaemonfinal.dao;
+package fedaemon.dao;
 
 
-import fedaemonfinal.frms.frmMonitor;
-import fedaemonfinal.infact.ArrayOfDetalleNC;
-import fedaemonfinal.infact.ArrayOfImpuesto;
-import fedaemonfinal.infact.ArrayOfInfoAdicional;
-import fedaemonfinal.infact.ArrayOfTotalImpuesto;
-import fedaemonfinal.infact.AutorizarNotaCredito;
-import fedaemonfinal.infact.CloudAutorizarComprobante;
-import fedaemonfinal.infact.DetalleNC;
-import fedaemonfinal.infact.IcloudAutorizarComprobante;
-import fedaemonfinal.infact.Impuesto;
-import fedaemonfinal.infact.InfoAdicional;
-import fedaemonfinal.infact.InfoNotaCredito;
-import fedaemonfinal.infact.InfoTributaria;
-import fedaemonfinal.infact.ObjectFactory;
-import fedaemonfinal.infact.Response;
-import fedaemonfinal.infact.TotalImpuesto;
-import fedaemonfinal.util.ConexionBD;
-import fedaemonfinal.util.InfoTrib;
+import fedaemon.frms.frmMonitor;
+import fedaemon.infact.produccion.ArrayOfDetalleNC;
+import fedaemon.infact.produccion.ArrayOfImpuesto;
+import fedaemon.infact.produccion.ArrayOfInfoAdicional;
+import fedaemon.infact.produccion.ArrayOfTotalImpuesto;
+import fedaemon.infact.produccion.AutorizarNotaCredito;
+import fedaemon.infact.produccion.CloudAutorizarComprobante;
+import fedaemon.infact.produccion.DetalleNC;
+import fedaemon.infact.produccion.IcloudAutorizarComprobante;
+import fedaemon.infact.produccion.Impuesto;
+import fedaemon.infact.produccion.InfoAdicional;
+import fedaemon.infact.produccion.InfoNotaCredito;
+import fedaemon.infact.produccion.InfoTributaria;
+import fedaemon.infact.produccion.ObjectFactory;
+import fedaemon.infact.produccion.Response;
+import fedaemon.infact.produccion.TotalImpuesto;
+import fedaemon.util.ConexionBD;
+import fedaemon.util.InfoDocumento;
 import java.io.File;
 import java.math.BigDecimal;
 import java.net.InetAddress;
@@ -46,36 +46,21 @@ public final class NotaCreditoDAO {
     
     protected frmMonitor frmMonitor;
     
-    public int consultarNotaCreditoPendientes(ConexionBD con)throws Exception{
+        
+    public int consultarNotaCreditoPendientes(ConexionBD con,String coddoc,String ambiente) {
     int result=0;
-    String select="SELECT COUNT(*),ESTAB,PTOEMI,SECUENCIAL FROM INVE_NCND_FE_DAT "
-            + "WHERE CODDOC='04' AND NUME_AUTO_INVE_DOCU IS NULL AND AMBIENTE=2 "
-//            + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'"
-            + "GROUP BY ESTAB,PTOEMI,SECUENCIAL";
-        Statement st= con.getCon().createStatement();
-        ResultSet rs=st.executeQuery(select);
-        while(rs.next())
-        {
-        result++;
-        }
-    
-     rs.close();
-    return result;
-    }
-    
-    public int consultarNotaCreditoPendientes(ConexionBD con,String coddoc) {
-    int result=0;
-    String sentencia="{call SP_FACTCONSULTAPENDIENTES(?,?)}";
+    String sentencia="{call SP_FACTCONSULTAPENDIENTES(?,?,?)}";
     CallableStatement cs=null;
     try{
     cs=con.getCon().prepareCall(sentencia);
     
     cs.setString(1, coddoc);
-    cs.registerOutParameter(2, java.sql.Types.NUMERIC);
+    cs.setString(2,ambiente);
+    cs.registerOutParameter(3, java.sql.Types.NUMERIC);
     
     cs.execute();
     
-    result=cs.getInt(2);
+    result=cs.getInt(3);
     }catch(SQLException ex){ex.printStackTrace();}
     finally{
         try{
@@ -93,7 +78,7 @@ public final class NotaCreditoDAO {
         
         int enviadas=0;
         ObjectFactory factory = null;
-        ArrayList<InfoTrib> arrayInfoTrib=null;
+        ArrayList<InfoDocumento> arrayInfoDoc=null;
         ArrayList<AutorizarNotaCredito> arrayAutorizarNotaCredito =null;
         String marco="============================================================================";
         //OJO que al consultar data de la base se recuperará info como estaba hasta el ultimo COMMIT ejecutado
@@ -105,20 +90,20 @@ public final class NotaCreditoDAO {
                 + "ORDER BY FECHAEMISION ASC,SECUENCIAL ASC";
         Statement st= null;
         ResultSet rs=null;
-        InfoTrib NC=null;
+        InfoDocumento NC=null;
         long start=0;
         long stop = 0;
         Response respuesta=null;
         int band=0;
         try{
             factory = new ObjectFactory();
-            arrayInfoTrib=new ArrayList<>();
+            arrayInfoDoc=new ArrayList<>();
             arrayAutorizarNotaCredito=new ArrayList<>();
             st= con.getCon().createStatement();
             rs=st.executeQuery(select);
             while(rs.next())
             {   
-                NC=new InfoTrib();
+                NC=new InfoDocumento();
                 NC.setLineas(rs.getString("LINEAS"));
                 NC.setEstab(rs.getString("ESTAB"));
                 NC.setPtoEmi(rs.getString("PTOEMI"));
@@ -126,14 +111,14 @@ public final class NotaCreditoDAO {
                 NC.setTotalSinImpuesto(rs.getDouble("TOTALSINIMPUESTO"));
                 NC.setTotalDescuento(rs.getDouble("DESCUENTO"));
                 NC.setTotalModificacion(rs.getDouble("VALORMODIFICACION"));
-                arrayInfoTrib.add(NC);
+                arrayInfoDoc.add(NC);
             }
         rs.close();
         st.close();
-        for(int i=0;i<arrayInfoTrib.size();i++){
+        for(int i=0;i<arrayInfoDoc.size();i++){
             this.frmMonitor.limpiaNC();
-            System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
-            this.frmMonitor.setMensajeNC("[info] - Registro #"+(i+1)+ " de "+arrayInfoTrib.size());
+            System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayInfoDoc.size());
+            this.frmMonitor.setMensajeNC("[info] - Registro #"+(i+1)+ " de "+arrayInfoDoc.size());
             InfoTributaria info_t=new InfoTributaria();
             InfoNotaCredito info_nc=new InfoNotaCredito();
             ArrayOfDetalleNC array_det=new ArrayOfDetalleNC();
@@ -144,9 +129,9 @@ public final class NotaCreditoDAO {
             try{
                  String filtro="SELECT * FROM INVE_NCND_FE_DAT WHERE NUME_AUTO_INVE_DOCU IS NULL AND CODDOC='04' AND AMBIENTE=2 "
 //                         + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'
-                        +" AND ESTAB="+arrayInfoTrib.get(i).getEstab()
-                        +" AND PTOEMI="+arrayInfoTrib.get(i).getPtoEmi()
-                        +" AND SECUENCIAL="+arrayInfoTrib.get(i).getSecuencial();
+                        +" AND ESTAB="+arrayInfoDoc.get(i).getEstab()
+                        +" AND PTOEMI="+arrayInfoDoc.get(i).getPtoEmi()
+                        +" AND SECUENCIAL="+arrayInfoDoc.get(i).getSecuencial();
                  st=con.getCon().createStatement();
                  rs=st.executeQuery(filtro);
                  
@@ -194,7 +179,7 @@ public final class NotaCreditoDAO {
                         
                         //============================ TOTAL DE IMPUESTO DE LA NC =================================
                         TotalImpuesto total_imp=new TotalImpuesto();
-                        total_imp.setBaseImponible(BigDecimal.valueOf(arrayInfoTrib.get(i).getTotalSinImpuesto()));
+                        total_imp.setBaseImponible(BigDecimal.valueOf(arrayInfoDoc.get(i).getTotalSinImpuesto()));
                         total_imp.setCodigo(rs.getInt("CODIGO"));
                         total_imp.setCodigoPorcentaje(rs.getInt("CODIGOPORCENTAJE"));
                         JAXBElement<String> tarifa=factory.createTotalImpuestoTarifa(rs.getString("TARIFA"));
@@ -207,8 +192,8 @@ public final class NotaCreditoDAO {
                         array_total_imp.getTotalImpuesto().add(total_imp);
                         
                         info_nc.setTotalConImpuestos(array_total_imp);
-                        info_nc.setTotalSinImpuestos(BigDecimal.valueOf(arrayInfoTrib.get(i).getTotalSinImpuesto()));
-                        info_nc.setValorModificacion(BigDecimal.valueOf(arrayInfoTrib.get(i).getTotalModificacion()));
+                        info_nc.setTotalSinImpuestos(BigDecimal.valueOf(arrayInfoDoc.get(i).getTotalSinImpuesto()));
+                        info_nc.setValorModificacion(BigDecimal.valueOf(arrayInfoDoc.get(i).getTotalModificacion()));
 
                         
                         //========================== INFORMACION ADICIONAL =======================================
@@ -334,8 +319,8 @@ public final class NotaCreditoDAO {
                 st.close();
             }
 
-                System.out.println("[info] - NOTA CREDITO "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
-                this.frmMonitor.setMensajeNC("[info] - NOTA CREDITO "+arrayInfoTrib.get(i).getEstab()+"-"+arrayInfoTrib.get(i).getPtoEmi()+"-"+arrayInfoTrib.get(i).getSecuencial());
+                System.out.println("[info] - NOTA CREDITO "+arrayInfoDoc.get(i).getEstab()+"-"+arrayInfoDoc.get(i).getPtoEmi()+"-"+arrayInfoDoc.get(i).getSecuencial());
+                this.frmMonitor.setMensajeNC("[info] - NOTA CREDITO "+arrayInfoDoc.get(i).getEstab()+"-"+arrayInfoDoc.get(i).getPtoEmi()+"-"+arrayInfoDoc.get(i).getSecuencial());
                 AutorizarNotaCredito autoriza=new AutorizarNotaCredito();
                 JAXBElement<InfoTributaria> jbInfoTributaria=factory.createAutorizarNotaCreditoInfoTributaria(info_t);
                 autoriza.setInfoTributaria( jbInfoTributaria);
@@ -347,7 +332,7 @@ public final class NotaCreditoDAO {
                 autoriza.setInfoAdicional(jbArrayOfInfoAdicional);
 
                 //generando xml...
-                generarXML(autoriza,arrayInfoTrib.get(i).getEstab(),arrayInfoTrib.get(i).getPtoEmi(),arrayInfoTrib.get(i).getSecuencial());
+                generarXML(autoriza,arrayInfoDoc.get(i).getEstab(),arrayInfoDoc.get(i).getPtoEmi(),arrayInfoDoc.get(i).getSecuencial());
 
                 arrayAutorizarNotaCredito.add(autoriza);
         }//final del for        
@@ -358,8 +343,8 @@ public final class NotaCreditoDAO {
                 //Enviar documento empaquetado al webservice de SRI para autorizar
                 for(int i=0;i<arrayAutorizarNotaCredito.size();i++){
 
-                    System.out.println("[info] - No. Lineas : "+arrayInfoTrib.get(i).getLineas());
-                    this.frmMonitor.setMensajeNC("[info] - No. Líneas : "+arrayInfoTrib.get(i).getLineas());
+                    System.out.println("[info] - No. Lineas : "+arrayInfoDoc.get(i).getLineas());
+                    this.frmMonitor.setMensajeNC("[info] - No. Líneas : "+arrayInfoDoc.get(i).getLineas());
                     System.out.println("[info] - Enviando petición de autorización al WS...");
                     this.frmMonitor.setMensajeNC("[info] - Enviando petición de autorización al WS...");
                     //obteniendo el tiempo inicial para el tiempo de espera estimado
@@ -377,6 +362,8 @@ public final class NotaCreditoDAO {
                     this.frmMonitor.setMensajeNC("[info] - Tiempo de respuesta: "+(stop-start)+" miliseg");
                     
                     enviadas++;
+                    System.out.println(marco);
+                    this.frmMonitor.setMensajeNC(marco);
                     System.out.println("No. de autorización: "+respuesta.getAutorizacion().getValue());
                     this.frmMonitor.setMensajeNC("No. de autorización: "+respuesta.getAutorizacion().getValue());
                     System.out.println("Clave de acceso: "+respuesta.getClaveAcceso().getValue());
@@ -391,7 +378,9 @@ public final class NotaCreditoDAO {
                     this.frmMonitor.setMensajeNC("Result: "+respuesta.getResult().getValue());
                     System.out.println("Result Data: "+respuesta.getResultData().getValue());
                     this.frmMonitor.setMensajeNC("Result Data: "+respuesta.getResultData().getValue());
-
+                    System.out.println(marco);
+                    this.frmMonitor.setMensajeNC(marco);
+                    
                     if(respuesta.getAutorizacion().getValue()!=null)
                     {
                         
@@ -438,7 +427,7 @@ public final class NotaCreditoDAO {
             jaxbContext=JAXBContext.newInstance(AutorizarNotaCredito.class);
             m=jaxbContext.createMarshaller();
             m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT,true);
-            rutaXml=this.frmMonitor.dir_nc+"AutorizarNotaCredito"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
+            rutaXml=this.frmMonitor.getServicio().getDirectorioNotasCredito()+"AutorizarNotaCredito"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
             m.marshal(jaxb_autoriza, new File (rutaXml)); 
 
             System.out.println("[info] - xml generado "+rutaXml);  

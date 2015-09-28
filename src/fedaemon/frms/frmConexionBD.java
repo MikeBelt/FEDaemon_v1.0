@@ -4,9 +4,11 @@
  * Created on 19/01/2015, 09:10 AM
  */
 
-package fedaemonfinal.frms;
+package fedaemon.frms;
 
-import fedaemonfinal.util.ConexionBD;
+import fedaemon.util.ConexionBD;
+import fedaemon.util.Empresa;
+import fedaemon.util.Servicio;
 import java.awt.Image;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
@@ -16,37 +18,34 @@ import java.awt.TrayIcon;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
-import java.lang.management.*;
 import java.sql.SQLException;
 import javax.swing.JOptionPane;
 
-public class frmConexionBD extends javax.swing.JFrame {
+public final class frmConexionBD extends javax.swing.JFrame {
 
     /** Creates new form PantallaConexionBD */
     public frmConexionBD() {
         initComponents();
         this.setLocation(500,200);
-//        this.setVisible(false);
-        this.crearDirectorios();
-//            Date ahora = new Date();
-//            SimpleDateFormat formateador = new SimpleDateFormat("yyyy.MM.dd");
-        
-//             this.setTitle(this.getTitle()+" v. "+formateador.format(ahora));
-             this.setTitle(this.getTitle()+" v. 2015.09.16");
-             System.out.println(this.getTitle()); 
+       
+    }
+    
+    public void ejecutarForm()
+    {
+         System.out.println(this.getTitle()); 
              try{
-                CONEXION=new ConexionBD("SISTEMAS","SISTEMAS2015FE","192.168.1.18","GLTEVRAC");
-                CONEXION.conectar();
+                conexionBD=new ConexionBD(this.getEmpresa().getUsuario()
+                        ,this.getEmpresa().getPasword()
+                        ,this.getEmpresa().getServidor()
+                        ,this.getEmpresa().getBase());
+                conexionBD.conectar();
                     System.out.println("CONEXION EXITOSA");
-//                    JOptionPane.showMessageDialog(this,"CONEXION EXITOSA");
-                CONEXION.desconectar();
+//                    JOptionPane.showMessageDialog(this,"conexionBD EXITOSA");
+                conexionBD.desconectar();
                     //creo la pantalla de inicio de sesion
                     frmMonitor PIS=new frmMonitor();
-                    PIS.setCONEXION(CONEXION);
-                    PIS.dir_facturas=this.dir_facturas;
-                    PIS.dir_retencion=this.dir_retencion;
-                    PIS.dir_nc=this.dir_nc;
-                    PIS.dir_nd=this.dir_nd;
+                    PIS.setConexion(conexionBD);
+                    PIS.setServicio(servicio);
                     PIS.setVisible(true);
                     PIS.lanzarHilos();
 
@@ -56,12 +55,11 @@ public class frmConexionBD extends javax.swing.JFrame {
            catch(SQLException | ClassNotFoundException e){
                System.out.println("[error] - NO SE PUDO ESTABLECER CONEXION CON EL SERVIDOR DE LA BASE");
                JOptionPane.showMessageDialog(this,"CONEXION FALLIDA\n"+e.getMessage());
-               e.printStackTrace();
+               
            }
              finally{}
-             
- }
     
+    }
 
     public static void mostrarNotificacion(){
     try{
@@ -195,18 +193,15 @@ public class frmConexionBD extends javax.swing.JFrame {
 
         if(usr.length()>0&&pass.length()>0&&server.length()>0&&base.length()>0)
              try{
-                CONEXION=new ConexionBD(usr,pass,server,base);
-                CONEXION.conectar();
+                conexionBD=new ConexionBD(usr,pass,server,base);
+                conexionBD.conectar();
                     System.out.println("CONEXION EXITOSA");
                     JOptionPane.showMessageDialog(this,"CONEXION EXITOSA");
-                CONEXION.desconectar();
+                conexionBD.desconectar();
                     //creo la pantalla de inicio de sesion
                     frmMonitor PIS=new frmMonitor();
-                    PIS.setCONEXION(CONEXION);
-                    PIS.dir_facturas=this.dir_facturas;
-                    PIS.dir_retencion=this.dir_retencion;
-                    PIS.dir_nc=this.dir_nc;
-                    PIS.dir_nd=this.dir_nd;
+                    PIS.setConexion(conexionBD);
+                    PIS.setServicio(servicio);
                     PIS.setVisible(true);
                     PIS.lanzarHilos();
 
@@ -234,95 +229,6 @@ public class frmConexionBD extends javax.swing.JFrame {
         tf_server.setText("");
         tf_base.setText("");
     }
-
-    private void crearDirectorios(){
-        //Sistema Operativo
-        System.out.println("Sistema Operativo: " + System.getProperty("os.name"));
-        //Arquitectura
-        System.out.println("Sobre arquitectura: " + System.getProperty("os.arch"));
-        //Version  
-        System.out.println("Versión " + System.getProperty("os.version"));
-    
-        if(System.getProperty("os.name").contains("Windows"))
-        {
-            String carpeta = "c:\\FEDaemonTEVCOL";
-            File acceso = new File(carpeta);
-                        
-            if (!acceso.exists()) 
-                acceso.mkdir();
-            
-            carpeta = "c:\\FEDaemonTEVCOL\\Facturas";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            dir_facturas=carpeta+"\\";
-            
-            carpeta = "c:\\FEDaemonTEVCOL\\Retenciones";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            dir_retencion=carpeta+"\\";
-            
-            carpeta = "c:\\FEDaemonTEVCOL\\NC";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            dir_nc=carpeta+"\\";
-            
-            carpeta = "c:\\FEDaemonTEVCOL\\ND";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            dir_nd=carpeta+"\\";
-            
-            
-        }
-        if(System.getProperty("os.name").contains("Linux"))
-        {
-            System.out.println("PID del proceso: " + pid());
-            
-            
-            String carpeta = "FEDaemonTEVCOL";
-            File acceso = new File(carpeta);
-            
-            if (!acceso.exists()) 
-                acceso.mkdir();
-            
-            carpeta = "FEDaemonTEVCOL/Facturas";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            dir_facturas=carpeta+"/";
-            
-            carpeta = "FEDaemonTEVCOL/Retenciones";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            dir_retencion=carpeta+"/";
-            
-            carpeta = "FEDaemonTEVCOL/NC";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            dir_nc=carpeta+"/";
-            
-            carpeta = "FEDaemonTEVCOL/ND";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            dir_nd=carpeta+"/";
-
- 
-        }
-    };
     
     public void escribeArchivo()     {         
         FileWriter fichero = null;
@@ -352,12 +258,6 @@ public class frmConexionBD extends javax.swing.JFrame {
 } 
 
     
-    public static int pid() {
-   String id = ManagementFactory.getRuntimeMXBean().getName();
-   String[] ids = id.split("@");
-   return Integer.parseInt(ids[0]);
-    }
-    
     /**
     * @param args the command line arguments
     */
@@ -370,11 +270,10 @@ public class frmConexionBD extends javax.swing.JFrame {
     }
 
 
-     ConexionBD CONEXION;
-     String dir_facturas=null;
-     String dir_retencion=null;
-     String dir_nc=null;
-     String dir_nd=null;
+     private ConexionBD conexionBD;
+     private Empresa empresa;
+     private Servicio servicio;
+     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
@@ -389,5 +288,33 @@ public class frmConexionBD extends javax.swing.JFrame {
     private javax.swing.JTextField tf_server;
     private javax.swing.JTextField tf_user;
     // End of variables declaration//GEN-END:variables
+
+    /**
+     * @return the empresa
+     */
+    public Empresa getEmpresa() {
+        return empresa;
+    }
+
+    /**
+     * @param empresa the empresa to set
+     */
+    public void setEmpresa(Empresa empresa) {
+        this.empresa = empresa;
+    }
+
+    /**
+     * @return the servicio
+     */
+    public Servicio getServicio() {
+        return servicio;
+    }
+
+    /**
+     * @param servicio the servicio to set
+     */
+    public void setServicio(Servicio servicio) {
+        this.servicio = servicio;
+    }
 
 }

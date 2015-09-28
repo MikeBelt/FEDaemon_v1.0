@@ -1,22 +1,21 @@
 
 
-package fedaemonfinal.dao;
+package fedaemon.dao;
 
 
-import fedaemonfinal.frms.frmMonitor;
-import fedaemonfinal.infact.ArrayOfImpuestosRetencion;
-import fedaemonfinal.infact.ArrayOfInfoAdicional;
-import fedaemonfinal.infact.AutorizarComprobanteRetencion;
-import fedaemonfinal.infact.CloudAutorizarComprobante;
-import fedaemonfinal.infact.IcloudAutorizarComprobante;
-import fedaemonfinal.infact.ImpuestosRetencion;
-import fedaemonfinal.infact.InfoAdicional;
-import fedaemonfinal.infact.InfoCompRetencion;
-import fedaemonfinal.infact.InfoTributaria;
-import fedaemonfinal.infact.ObjectFactory;
-import fedaemonfinal.infact.Response;
-import fedaemonfinal.util.ConexionBD;
-import fedaemonfinal.util.InfoTrib;
+import fedaemon.frms.frmMonitor;
+import fedaemon.infact.produccion.ArrayOfImpuestosRetencion;
+import fedaemon.infact.produccion.ArrayOfInfoAdicional;
+import fedaemon.infact.produccion.AutorizarComprobanteRetencion;
+import fedaemon.infact.produccion.CloudAutorizarComprobante;
+import fedaemon.infact.produccion.IcloudAutorizarComprobante;
+import fedaemon.infact.produccion.ImpuestosRetencion;
+import fedaemon.infact.produccion.InfoAdicional;
+import fedaemon.infact.produccion.InfoCompRetencion;
+import fedaemon.infact.produccion.InfoTributaria;
+import fedaemon.infact.produccion.ObjectFactory;
+import fedaemon.infact.produccion.Response;
+import fedaemon.util.ConexionBD;
 import java.io.File;
 import java.math.BigDecimal;
 import java.net.InetAddress;
@@ -44,36 +43,21 @@ public final class RetencionDAO {
     
     protected frmMonitor frmMonitor;
     
-    public int consultarRetencionPendientes(ConexionBD con)throws Exception{
+
+    public int consultarRetencionPendientes(ConexionBD con,String coddoc,String ambiente) {
     int result=0;
-    String select="SELECT COUNT(*) FROM INVE_RETENCIONES_FE_DAT "
-            + "WHERE NUME_AUTO_INVE_RETE IS NULL AND CODDOC='07' AND AMBIENTE=2 "
-//            + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101' "
-            + "GROUP BY ESTAB,PTOEMI,SECUENCIAL";
-        Statement st= con.getCon().createStatement();
-        ResultSet rs=st.executeQuery(select);
-        while(rs.next())
-        {
-        result++;
-        }
-    
-     rs.close();
-    return result;
-    }
-    
-    public int consultarRetencionPendientes(ConexionBD con,String coddoc) {
-    int result=0;
-    String sentencia="{call SP_FACTCONSULTAPENDIENTES(?,?)}";
+    String sentencia="{call SP_FACTCONSULTAPENDIENTES(?,?,?)}";
     CallableStatement cs=null;
     try{
     cs=con.getCon().prepareCall(sentencia);
     
     cs.setString(1, coddoc);
-    cs.registerOutParameter(2, java.sql.Types.NUMERIC);
+    cs.setString(2,ambiente);
+    cs.registerOutParameter(3, java.sql.Types.NUMERIC);
     
     cs.execute();
     
-    result=cs.getInt(2);
+    result=cs.getInt(3);
     }catch(SQLException ex){ex.printStackTrace();}
     finally{
         try{
@@ -103,8 +87,8 @@ public final class RetencionDAO {
         String filtro=null;
         Statement st= null;
         ResultSet rs=null;
-        InfoTrib infoTrib=null;
-        ArrayList<InfoTrib> arrayInfoTrib=null;
+        InfoTributaria infoTrib=null;
+        ArrayList<InfoTributaria> arrayInfoTrib=null;
         ArrayList<AutorizarComprobanteRetencion> arrayAutorizaComprobante=null;
         InfoTributaria info_t=null;
         InfoCompRetencion info_comp=null;
@@ -121,7 +105,7 @@ public final class RetencionDAO {
             rs=st.executeQuery(select);
             while(rs.next())
             {   
-                infoTrib=new InfoTrib();
+                infoTrib=new InfoTributaria();
                 infoTrib.setEstab(rs.getString("ESTAB"));
                 infoTrib.setPtoEmi(rs.getString("PTOEMI"));
                 infoTrib.setSecuencial(rs.getString("SECUENCIAL"));
@@ -402,7 +386,7 @@ public final class RetencionDAO {
         jaxb_context=JAXBContext.newInstance(AutorizarComprobanteRetencion.class);
         m=jaxb_context.createMarshaller();
         m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT,true);
-        rutaXml=this.frmMonitor.dir_retencion+"AutorizarComprobanteRetencion"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
+        rutaXml=this.frmMonitor.getServicio().getDirectorioNotasDebito()+"AutorizarComprobanteRetencion"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
         m.marshal(jaxb_autoriza, new File (rutaXml));
 
         System.out.println("[info] - xml generado "+rutaXml);  
@@ -448,11 +432,14 @@ public final class RetencionDAO {
     
     }
     
-    private int notificarResultado(ConexionBD con,Response resp,InfoTributaria info,String ts)throws SQLException{
-         String insert="INSERT INTO INVE_LOG_FE_DAT(COD_DOC,NUM_DOC,NUM_AUTORIZACION,CLAVE_ACCESO,MENSAJE_DEVUELTO,TIEMPO_RESPUESTA,AMBIENTE)"+
+    private int notificarResultado(ConexionBD con,Response resp,InfoTributaria info,String ts){
+         int n=0;
+        String insert="INSERT INTO INVE_LOG_FE_DAT(COD_DOC,NUM_DOC,NUM_AUTORIZACION,CLAVE_ACCESO,MENSAJE_DEVUELTO,TIEMPO_RESPUESTA,AMBIENTE)"+
             "VALUES(?,?,?,?,?,?,?)";
-        PreparedStatement ps=con.getCon().prepareStatement(insert);
-        
+        PreparedStatement ps=null;
+        try
+        {
+        ps=con.getCon().prepareStatement(insert);
         ps.setString(1,info.getCodDoc());
         ps.setString(2,info.getEstab()+"-"+info.getPtoEmi()+"-"+info.getSecuencial());
         ps.setString(3,resp.getAutorizacion().getValue());
@@ -460,7 +447,7 @@ public final class RetencionDAO {
 //        ps.setDate(5, new java.sql.Date( new java.util.Date().getTime()));
         ps.setString(5,resp.getResult().getValue()+"\n"+resp.getResultData().getValue());
         ps.setString(6,ts);
-        ps.setInt(7,2);
+        ps.setInt(7,2);   
         
 //        String sp="CALL MAIL_FILES(administrador.tevcol,michael.beltran@tevcol.com.ec,?,null,null,null,null)";
 //        CallableStatement call=con.getCon().prepareCall(sp);
@@ -473,8 +460,22 @@ public final class RetencionDAO {
 //        call.setString(1,mensaje);
 //  
 //        int n=call.executeUpdate();
-        int n=ps.executeUpdate();
-        ps.close();
+        n=ps.executeUpdate();
+        }
+        catch(SQLException ex){System.out.println("[error] - Error al insertar registros");}
+        finally
+        {
+            if(ps!=null)
+            {
+                try
+                {
+                    ps.close();
+                }
+                catch(SQLException e){
+                System.out.println("[error] - Error al cerrar PreparedStatement");}
+            }
+        }
+        
         return n;
     }
     

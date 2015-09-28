@@ -2,10 +2,46 @@
 <jax-ws xmlns="http://www.netbeans.org/ns/jax-ws/1">
   <services/>
   <clients>
+    <client name="cloudAutorizarComprobante_1">
+      <wsdl-url>http://infacttest.azurewebsites.net/Services/cloudAutorizarComprobante.svc?wsdl</wsdl-url>
+      <local-wsdl-file>infacttest.azurewebsites.net/Services/cloudAutorizarComprobante.svc.wsdl</local-wsdl-file>
+      <package-name forceReplace="true">fedaemon.infact.pruebas</package-name>
+      <catalog-file>catalog.xml</catalog-file>
+      <wsimport-options>
+        <wsimport-option>
+          <wsimport-option-name>extension</wsimport-option-name>
+          <wsimport-option-value>true</wsimport-option-value>
+        </wsimport-option>
+        <wsimport-option>
+          <wsimport-option-name>verbose</wsimport-option-name>
+          <wsimport-option-value>true</wsimport-option-value>
+        </wsimport-option>
+        <wsimport-option>
+          <wsimport-option-name>fork</wsimport-option-name>
+          <wsimport-option-value>false</wsimport-option-value>
+        </wsimport-option>
+        <wsimport-option>
+          <wsimport-option-name>wsdlLocation</wsimport-option-name>
+          <wsimport-option-value>http://infacttest.azurewebsites.net/Services/cloudAutorizarComprobante.svc?wsdl</wsimport-option-value>
+        </wsimport-option>
+        <wsimport-option>
+          <wsimport-option-name>xnocompile</wsimport-option-name>
+          <wsimport-option-value>true</wsimport-option-value>
+        </wsimport-option>
+        <wsimport-option>
+          <wsimport-option-name>xendorsed</wsimport-option-name>
+          <wsimport-option-value>true</wsimport-option-value>
+        </wsimport-option>
+        <wsimport-option>
+          <wsimport-option-name>package</wsimport-option-name>
+          <wsimport-option-value>fedaemon.infact.pruebas</wsimport-option-value>
+        </wsimport-option>
+      </wsimport-options>
+    </client>
     <client name="cloudAutorizarComprobante">
       <wsdl-url>http://tevcol.azurewebsites.net/Services/cloudAutorizarComprobante.svc?wsdl</wsdl-url>
       <local-wsdl-file>tevcol.azurewebsites.net/Services/cloudAutorizarComprobante.svc.wsdl</local-wsdl-file>
-      <package-name forceReplace="true">fedaemonfinal.infact</package-name>
+      <package-name forceReplace="true">fedaemon.infact.produccion</package-name>
       <catalog-file>catalog.xml</catalog-file>
       <wsimport-options>
         <wsimport-option>
@@ -34,7 +70,7 @@
         </wsimport-option>
         <wsimport-option>
           <wsimport-option-name>package</wsimport-option-name>
-          <wsimport-option-value>fedaemonfinal.infact</wsimport-option-value>
+          <wsimport-option-value>fedaemon.infact.produccion</wsimport-option-value>
         </wsimport-option>
       </wsimport-options>
     </client>
