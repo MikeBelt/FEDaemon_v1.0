@@ -1,16 +1,16 @@
 
-package fedaemon.hilos;
+package fedaemon.produccion.hilos;
 
-import fedaemon.util.ConexionBD;
-import fedaemon.dao.NotaCreditoDAO;
-import fedaemon.frms.frmMonitor;
+import fedaemon.produccion.util.ConexionBD;
+import fedaemon.produccion.dao.NotaCreditoDAO;
+import fedaemon.produccion.frms.frmMonitor;
 import java.sql.SQLException;
 
 /**
  *
  * @author Mike
  */
-public final class ThreadAutorizarNotasCredito extends Thread{
+public final class ThreadAutorizarNotaCredito extends Thread{
     
     protected ConexionBD conexionBD;
     protected frmMonitor frmMonitor;
@@ -22,10 +22,11 @@ public final class ThreadAutorizarNotasCredito extends Thread{
         ConexionBD con=null; 
         int enviadas=0;
         int contar=0;
+        long minutos=0;
         
         notaCreditoDAO=new NotaCreditoDAO();
         notaCreditoDAO.setMonitor(frmMonitor);
-        con=new ConexionBD(conexionBD.getUsr(),conexionBD.getPass(),conexionBD.getServer(),conexionBD.getBase());
+        con=new ConexionBD(conexionBD.getUsr(),conexionBD.getPass(),conexionBD.getServer(),conexionBD.getBase(),conexionBD.isSid(),conexionBD.isServiceName());
         System.out.println("[info] - Iniciando hilo para autorización de Notas de Crédito... ");
         this.frmMonitor.setMensajeNC("[info] - Iniciando hilo para autorización de Notas de Crédito... ");
         
@@ -43,7 +44,8 @@ public final class ThreadAutorizarNotasCredito extends Thread{
                 System.out.println("[info] - Verificando Notas de Crédito pendientes de autorización...");
                 this.frmMonitor.setMensajeNC("[info] - Verificando Notas de Crédito pendientes de autorización...");
 
-                contar=notaCreditoDAO.consultarNotaCreditoPendientes(con,"04",frmMonitor.getServicio().getAmbiente());
+                contar=notaCreditoDAO.consultarNotaCreditoPendiente(con);
+//                contar=notaCreditoDAO.consultarNotaCreditoPendiente(con,"04",frmMonitor.getServicio().getAmbiente());
                 notaCreditoDAO.cambiaEstado(con,"EJECUTANDO", contar);
         
                 if(contar==0)
@@ -94,11 +96,13 @@ public final class ThreadAutorizarNotasCredito extends Thread{
                 }
             }
         
-            try{
-                System.out.println("[info] - Pausando el Hilo Notas de Crédito por 5 minuto(s)");
-                this.frmMonitor.setMensajeNC("[info] - Pausando el Hilo Notas de Crédito por 5 minuto(s)");
+            try
+            {
+                minutos=frmMonitor.getServicio().getTiempoEspera()/60000;
+                System.out.println("[info] - Pausando el Hilo Notas de Crédito por "+minutos+" minuto(s)");
+                this.frmMonitor.setMensajeNC("[info] - Pausando el Hilo Notas de Crédito por "+minutos+" minuto(s)");
                 this.frmMonitor.cambiaEstadoPanel("jPNC", "Notas de Crédito [EN ESPERA]");
-                this.sleep(300000);
+                this.sleep(frmMonitor.getServicio().getTiempoEspera());
             }
             catch (Exception ex)
             {

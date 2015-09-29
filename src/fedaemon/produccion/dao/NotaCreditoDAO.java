@@ -1,8 +1,8 @@
 
-package fedaemon.dao;
+package fedaemon.produccion.dao;
 
 
-import fedaemon.frms.frmMonitor;
+import fedaemon.produccion.frms.frmMonitor;
 import fedaemon.infact.produccion.ArrayOfDetalleNC;
 import fedaemon.infact.produccion.ArrayOfImpuesto;
 import fedaemon.infact.produccion.ArrayOfInfoAdicional;
@@ -18,8 +18,8 @@ import fedaemon.infact.produccion.InfoTributaria;
 import fedaemon.infact.produccion.ObjectFactory;
 import fedaemon.infact.produccion.Response;
 import fedaemon.infact.produccion.TotalImpuesto;
-import fedaemon.util.ConexionBD;
-import fedaemon.util.InfoDocumento;
+import fedaemon.produccion.util.ConexionBD;
+import fedaemon.produccion.util.InfoDocumento;
 import java.io.File;
 import java.math.BigDecimal;
 import java.net.InetAddress;
@@ -46,8 +46,42 @@ public final class NotaCreditoDAO {
     
     protected frmMonitor frmMonitor;
     
-        
-    public int consultarNotaCreditoPendientes(ConexionBD con,String coddoc,String ambiente) {
+    public int consultarNotaCreditoPendiente(ConexionBD con){
+    int result=0;
+    String select="SELECT COUNT(*),ESTAB,PTOEMI,SECUENCIAL "
+            + "FROM INVE_NCND_FE_DAT "
+            + "WHERE CODDOC='04' "
+            + "AND NUME_AUTO_INVE_DOCU IS NULL "
+            + "AND AMBIENTE="+frmMonitor.getServicio().getAmbiente()
+            + " GROUP BY ESTAB,PTOEMI,SECUENCIAL";
+    Statement st=null;
+    ResultSet rs=null;
+    try
+    {    
+        st= con.getCon().createStatement();
+        rs=st.executeQuery(select);
+        while(rs.next())
+        {
+        result++;
+        }
+    }
+    catch(SQLException ex){System.out.println("[error] - error de ResultSet de consultaNotasCreditoPendientes");}
+    finally
+        {
+            
+          try
+          {
+             if(rs!=null)
+                rs.close();
+          }catch(SQLException se2)
+          {
+              System.out.println("[error] - error de cerrar ResultSet de consultaNotasCreditoPendientes");
+          } 
+        }
+     return result;
+    }
+    
+    public int consultarNotaCreditoPendiente(ConexionBD con,String coddoc,String ambiente) {
     int result=0;
     String sentencia="{call SP_FACTCONSULTAPENDIENTES(?,?,?)}";
     CallableStatement cs=null;
@@ -61,12 +95,16 @@ public final class NotaCreditoDAO {
     cs.execute();
     
     result=cs.getInt(3);
-    }catch(SQLException ex){ex.printStackTrace();}
+    }catch(SQLException ex){System.out.println("[error] - error de ResultSet de consultaFacturasPendientes");}
     finally{
-        try{
+        try
+        {
          if(cs!=null)
             cs.close();
-      }catch(SQLException se2){
+        }
+        catch(SQLException se2)
+      {
+          System.out.println("[error] - error de cerrar ResultSet de consultaNotasCreditoPendientes");
       }
     }
     
@@ -84,9 +122,10 @@ public final class NotaCreditoDAO {
         //OJO que al consultar data de la base se recuperará info como estaba hasta el ultimo COMMIT ejecutado
         String select="SELECT COUNT(*) LINEAS,TOTALSINIMPUESTO,DESCUENTO,VALORMODIFICACION,ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "FROM INVE_NCND_FE_DAT "
-                + "WHERE CODDOC='04' AND NUME_AUTO_INVE_DOCU IS NULL AND AMBIENTE=2 "
-//                + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'"
-                + "GROUP BY TOTALSINIMPUESTO,DESCUENTO,VALORMODIFICACION,ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
+                + "WHERE CODDOC='04' "
+                + "AND NUME_AUTO_INVE_DOCU IS NULL "
+                + "AND AMBIENTE="+frmMonitor.getServicio().getAmbiente()
+                + " GROUP BY TOTALSINIMPUESTO,DESCUENTO,VALORMODIFICACION,ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "ORDER BY FECHAEMISION ASC,SECUENCIAL ASC";
         Statement st= null;
         ResultSet rs=null;
@@ -447,9 +486,11 @@ public final class NotaCreditoDAO {
 
         int result=0;
         String update="UPDATE INVE_NCND_FE_DAT SET NUME_AUTO_INVE_DOCU=? "
-                + "WHERE CODDOC='04' AND AMBIENTE=2 "
-//                + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101' "
-                + "AND ESTAB="+info.getEstab()+" AND PTOEMI="+info.getPtoEmi()+" AND SECUENCIAL="+info.getSecuencial() ;
+                + "WHERE CODDOC='04' "
+                + "AND AMBIENTE="+frmMonitor.getServicio().getAmbiente()
+                + "AND ESTAB="+info.getEstab()
+                +" AND PTOEMI="+info.getPtoEmi()
+                +" AND SECUENCIAL="+info.getSecuencial() ;
         PreparedStatement ps=null;
         try{
         ps=con.getCon().prepareStatement(update);
@@ -550,17 +591,14 @@ public final class NotaCreditoDAO {
         int result=0;
         String update="UPDATE INVE_INFO_FE_DAT SET ESTATUS=?,USUARIO_ACT=?,ULT_EJECUCION=?,HOST_ACT=?,ATENDIENDO=? WHERE NOMBRE='HILO NOTAS CREDITO'";
         PreparedStatement ps=null;
-        Calendar calendar =null;
         InetAddress localHost =null;
         try
         {
             ps = con.getCon().prepareStatement(update);
             ps.setString(1, estado);
             ps.setString(2, System.getProperty("user.name"));
-
-            calendar= Calendar.getInstance();
-            java.util.Date now = calendar.getTime();
-            ps.setDate(3,new java.sql.Date(now.getYear(), now.getMonth(), now.getDay()));
+            java.util.Date now = new java.util.Date();
+            ps.setDate(3,new java.sql.Date(now.getTime()));
             localHost = InetAddress.getLocalHost();
             ps.setString(4,localHost.getHostName());
             ps.setInt(5, atendiendo);

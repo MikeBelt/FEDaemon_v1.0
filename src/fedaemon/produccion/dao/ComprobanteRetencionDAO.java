@@ -1,9 +1,9 @@
 
 
-package fedaemon.dao;
+package fedaemon.produccion.dao;
 
 
-import fedaemon.frms.frmMonitor;
+import fedaemon.produccion.frms.frmMonitor;
 import fedaemon.infact.produccion.ArrayOfImpuestosRetencion;
 import fedaemon.infact.produccion.ArrayOfInfoAdicional;
 import fedaemon.infact.produccion.AutorizarComprobanteRetencion;
@@ -15,13 +15,12 @@ import fedaemon.infact.produccion.InfoCompRetencion;
 import fedaemon.infact.produccion.InfoTributaria;
 import fedaemon.infact.produccion.ObjectFactory;
 import fedaemon.infact.produccion.Response;
-import fedaemon.util.ConexionBD;
+import fedaemon.produccion.util.ConexionBD;
 import java.io.File;
 import java.math.BigDecimal;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.CallableStatement;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,12 +38,46 @@ import javax.xml.namespace.QName;
  *
  * @author Michael Beltrán
  */
-public final class RetencionDAO {
+public final class ComprobanteRetencionDAO {
     
     protected frmMonitor frmMonitor;
     
+    public int consultarRetencionPendiente(ConexionBD con){
+    int result=0;
+    String select="SELECT COUNT(*) "
+            + "FROM INVE_RETENCIONES_FE_DAT "
+            + "WHERE NUME_AUTO_INVE_RETE IS NULL "
+            + "AND CODDOC='07' "
+            + "AND AMBIENTE="+frmMonitor.getServicio().getAmbiente()
+            + " GROUP BY ESTAB,PTOEMI,SECUENCIAL";
+    Statement st=null;
+    ResultSet rs=null;
+    try
+    {
+        st= con.getCon().createStatement();
+        rs=st.executeQuery(select);
+        while(rs.next())
+        {
+        result++;
+        }
+    }
+    catch(SQLException ex){System.out.println("[error] - error de ResultSet de consultarRetencionesPendientes");}
+    finally
+        {
+            
+          try
+          {
+             if(rs!=null)
+                rs.close();
+          }catch(SQLException se2)
+          {
+              System.out.println("[error] - error de cerrar ResultSet de consultarRetencionesPendientes");
+          } 
+        }
+     return result;
+    }
 
-    public int consultarRetencionPendientes(ConexionBD con,String coddoc,String ambiente) {
+    public int consultarRetencionPendiente(ConexionBD con,String coddoc,String ambiente) {
     int result=0;
     String sentencia="{call SP_FACTCONSULTAPENDIENTES(?,?,?)}";
     CallableStatement cs=null;
@@ -80,8 +113,8 @@ public final class RetencionDAO {
         String select="SELECT COUNT(*),ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "FROM INVE_RETENCIONES_FE_DAT "
                 + "WHERE CODDOC='07' "
-                + "AND NUME_AUTO_INVE_RETE IS NULL AND AMBIENTE=2 "
-//                + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'"
+                + "AND NUME_AUTO_INVE_RETE IS NULL "
+                + "AND AMBIENTE=2 "
                 + "GROUP BY ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "ORDER BY FECHAEMISION ASC,SECUENCIAL ASC";
         String filtro=null;
@@ -400,9 +433,11 @@ public final class RetencionDAO {
         
         int result=0;
         String update="UPDATE INVE_RETENCIONES_FE_DAT SET NUME_AUTO_INVE_RETE=? "
-                + "WHERE CODDOC='07' AND AMBIENTE=2 "
-//                + " AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101' "
-                + " AND ESTAB="+info.getEstab()+" AND PTOEMI="+info.getPtoEmi()+" AND SECUENCIAL="+info.getSecuencial() ;
+                +"WHERE CODDOC='07' "
+                +"AND AMBIENTE="+frmMonitor.getServicio().getAmbiente()
+                +" AND ESTAB="+info.getEstab()
+                +" AND PTOEMI="+info.getPtoEmi()
+                +" AND SECUENCIAL="+info.getSecuencial();
         PreparedStatement ps=null;
         try
         {
@@ -501,16 +536,14 @@ public final class RetencionDAO {
         int result=0;
         String update="UPDATE INVE_INFO_FE_DAT SET ESTATUS=?,USUARIO_ACT=?,ULT_EJECUCION=?,HOST_ACT=?,ATENDIENDO=? WHERE NOMBRE='HILO RETENCIONES'";
         PreparedStatement ps = null;
-        Calendar calendar =null;
         InetAddress localHost=null;
         try
         {
         ps = con.getCon().prepareStatement(update);
         ps.setString(1, estado);
         ps.setString(2, System.getProperty("user.name"));
-        calendar= Calendar.getInstance();
-        java.util.Date now = calendar.getTime();
-        ps.setDate(3,new Date(now.getYear(), now.getMonth(), now.getDay()));
+        java.util.Date now = new java.util.Date();
+        ps.setDate(3,new java.sql.Date(now.getTime()));
         localHost = InetAddress.getLocalHost();
         ps.setString(4,localHost.getHostName());
         ps.setInt(5, atendiendo);

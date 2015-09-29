@@ -1,4 +1,4 @@
-package fedaemon.util;
+package fedaemon.produccion.util;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -15,24 +15,32 @@ public final class ConexionBD {
     private String pass;
     private String server;
     private String base;
+    private boolean sid;
+    private boolean serviceName;
 
-    public ConexionBD(String usr,String pass,String server,String base){
-    con=null;
-    setUsr(usr);
-    setPass(pass);
-    setServer(server);
-    setBase(base);
+    public ConexionBD(String usr,String pass,String server,String base,boolean sid,boolean serviceName){
+        con=null;
+        setUsr(usr);
+        setPass(pass);
+        setServer(server);
+        setBase(base);
+        setSid(sid);
+        setServiceName(serviceName);
     }
 
     public void conectar()throws ClassNotFoundException,SQLException{
          
-            
+        String url=null;
+        
         Class.forName("oracle.jdbc.driver.OracleDriver");
         //en esta parte OJO con el tipo de conexion:
         //si es SID se pone ":" despues del numero de puerto
         //si es SERVICE_NAME se pone "/" despues del numero de puerto
-        //String url="jdbc:oracle:thin:@"+server+":1521:"+base;
-        String url="jdbc:oracle:thin:@"+server+":1521/"+base;
+        if(sid)
+            url="jdbc:oracle:thin:@"+server+":1521:"+base;
+        if(serviceName)
+            url="jdbc:oracle:thin:@"+server+":1521/"+base;
+        
         setCon(DriverManager.getConnection(url, usr, pass));
         
             
@@ -84,5 +92,33 @@ public final class ConexionBD {
 
     public void setCon(Connection con) {
         this.con = con;
+    }
+
+    /**
+     * @return the sid
+     */
+    public boolean isSid() {
+        return sid;
+    }
+
+    /**
+     * @param sid the sid to set
+     */
+    public void setSid(boolean sid) {
+        this.sid = sid;
+    }
+
+    /**
+     * @return the serviceName
+     */
+    public boolean isServiceName() {
+        return serviceName;
+    }
+
+    /**
+     * @param serviceName the serviceName to set
+     */
+    public void setServiceName(boolean serviceName) {
+        this.serviceName = serviceName;
     }
 }

@@ -1,37 +1,33 @@
 
-package fedaemon.hilos;
+package fedaemon.produccion.hilos;
 
-import fedaemon.util.ConexionBD;
-import fedaemon.dao.FacturaDAO;
-import fedaemon.frms.frmMonitor;
+import fedaemon.produccion.util.ConexionBD;
+import fedaemon.produccion.dao.FacturaDAO;
+import fedaemon.produccion.frms.frmMonitor;
 import java.sql.SQLException;
 
 /**
  *
- * @author Mike
+ * @author Michael Beltrán
  */
-public final class ThreadAutorizarFacturas extends Thread{
+public final class ThreadAutorizarFactura extends Thread{
     
     protected ConexionBD conexionBD;
     protected frmMonitor frmMonitor;
     public FacturaDAO facturaDAO;
-//    public ThreadAutorizarFacturas(ConexionBD con){
-//    this.conexionBD=con;
-//    }
+
     
     @Override
     public void run(){
         
-//   ConexionBD conexionBD=new ConexionBD("operaciones","operaciones","192.168.1.10","GLTEVCOL");
-//   ConexionBD conexionBD=new ConexionBD("inter","INTER2014","192.168.1.245","GLTEVCOL");
-//   ConexionBD conexionBD=new ConexionBD("sistemas","tevsur","192.168.15.200","GLTEVSUR");
         ConexionBD con=null;
         int enviadas=0;
         int contar=0;
+        long minutos=0;
         
         facturaDAO=new FacturaDAO(); 
         facturaDAO.setMonitor(frmMonitor);
-        con=new ConexionBD(conexionBD.getUsr(),conexionBD.getPass(),conexionBD.getServer(),conexionBD.getBase());
+        con=new ConexionBD(conexionBD.getUsr(),conexionBD.getPass(),conexionBD.getServer(),conexionBD.getBase(),conexionBD.isSid(),conexionBD.isServiceName());
         System.out.println("[info] - Iniciando hilo para autorización de Facturas... ");
         this.frmMonitor.setMensajeFacturas("[info] - Iniciando hilo para autorización de Facturas... ");
                      
@@ -49,8 +45,9 @@ public final class ThreadAutorizarFacturas extends Thread{
                 
                 System.out.println("[info] - Verificando Facturas pendientes de autorización...");
                 this.frmMonitor.setMensajeFacturas("[info] - Verificando Facturas pendientes de autorización...");
-         
-                contar=facturaDAO.consultarFacturasPendientes(con,"01",frmMonitor.getServicio().getAmbiente());
+                
+                contar=facturaDAO.consultarFacturaPendiente(con);
+//                contar=facturaDAO.consultarFacturaPendiente(con,"01",frmMonitor.getServicio().getAmbiente());
                 facturaDAO.cambiaEstado(con, "EJECUTANDO",contar);
                 
                 if(contar==0)
@@ -104,11 +101,12 @@ public final class ThreadAutorizarFacturas extends Thread{
             
             try 
             {
-                System.out.println("[info] - Pausando el Hilo Facturas por 5 minuto(s)");
-                this.frmMonitor.setMensajeFacturas("[info] - Pausando el Hilo Facturas por 5 minuto(s)");
-                
-                this.sleep(300000); 
+                minutos=frmMonitor.getServicio().getTiempoEspera()/60000;
+                System.out.println("[info] - Pausando el Hilo Facturas por "+minutos+" minuto(s)");
+                this.frmMonitor.setMensajeFacturas("[info] - Pausando el Hilo Facturas por "+minutos+" minuto(s)");
                 this.frmMonitor.cambiaEstadoPanel("jPFacturas", "Facturas [EN ESPERA]");
+                this.sleep(frmMonitor.getServicio().getTiempoEspera()); 
+                
             } 
             catch (Exception ex)
             {

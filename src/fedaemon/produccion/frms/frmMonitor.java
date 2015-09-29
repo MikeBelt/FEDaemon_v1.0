@@ -1,13 +1,13 @@
 
 
-package fedaemon.frms;
+package fedaemon.produccion.frms;
 
-import fedaemon.hilos.ThreadAutorizarComprobantesRetencion;
-import fedaemon.hilos.ThreadAutorizarFacturas;
-import fedaemon.hilos.ThreadAutorizarNotasCredito;
-import fedaemon.hilos.ThreadAutorizarNotasDebito;
-import fedaemon.util.ConexionBD;
-import fedaemon.util.Servicio;
+import fedaemon.produccion.hilos.ThreadAutorizarComprobanteRetencion;
+import fedaemon.produccion.hilos.ThreadAutorizarFactura;
+import fedaemon.produccion.hilos.ThreadAutorizarNotaCredito;
+import fedaemon.produccion.hilos.ThreadAutorizarNotaDebito;
+import fedaemon.produccion.util.ConexionBD;
+import fedaemon.produccion.util.Servicio;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.net.UnknownHostException;
@@ -106,10 +106,10 @@ public final class frmMonitor extends javax.swing.JFrame {
     public void lanzarHilos(){
     System.out.println("Iniciando el proceso demonio... ");
         
-            threadAutorizarFacturas=new ThreadAutorizarFacturas();
-            threadAutorizarRetenciones=new ThreadAutorizarComprobantesRetencion();
-            threadAutorizarNotaCredito=new ThreadAutorizarNotasCredito();
-            threadAutorizarNotaDebito=new ThreadAutorizarNotasDebito(); 
+            threadAutorizarFacturas=new ThreadAutorizarFactura();
+            threadAutorizarRetenciones=new ThreadAutorizarComprobanteRetencion();
+            threadAutorizarNotaCredito=new ThreadAutorizarNotaCredito();
+            threadAutorizarNotaDebito=new ThreadAutorizarNotaDebito(); 
             
             threadAutorizarFacturas.setConexion(conexionBD);
             threadAutorizarFacturas.setMonitor(this);
@@ -325,8 +325,6 @@ public final class frmMonitor extends javax.swing.JFrame {
             
         } catch (SQLException ex) {
             Logger.getLogger(frmMonitor.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (UnknownHostException ex) {
-            Logger.getLogger(frmMonitor.class.getName()).log(Level.SEVERE, null, ex);
         } catch (Exception ex) {
             Logger.getLogger(frmMonitor.class.getName()).log(Level.SEVERE, null, ex);
         }finally{
@@ -380,10 +378,10 @@ public final class frmMonitor extends javax.swing.JFrame {
     }
 
     private ConexionBD conexionBD;
-    ThreadAutorizarFacturas threadAutorizarFacturas;
-    ThreadAutorizarComprobantesRetencion threadAutorizarRetenciones;
-    ThreadAutorizarNotasCredito threadAutorizarNotaCredito;
-    ThreadAutorizarNotasDebito threadAutorizarNotaDebito;
+    ThreadAutorizarFactura threadAutorizarFacturas;
+    ThreadAutorizarComprobanteRetencion threadAutorizarRetenciones;
+    ThreadAutorizarNotaCredito threadAutorizarNotaCredito;
+    ThreadAutorizarNotaDebito threadAutorizarNotaDebito;
     private Servicio servicio;
    
             

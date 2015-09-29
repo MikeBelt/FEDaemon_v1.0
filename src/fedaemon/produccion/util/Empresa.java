@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package fedaemon.util;
+package fedaemon.produccion.util;
 
 /**
  *
@@ -18,6 +18,8 @@ public final class Empresa {
     private String base;
     private String usuario;
     private String pasword;
+    private boolean sid;
+    private boolean serviceName;
     
     public Empresa()
     {
@@ -94,6 +96,34 @@ public final class Empresa {
      */
     public void setPasword(String pasword) {
         this.pasword = pasword;
+    }
+
+    /**
+     * @return the sid
+     */
+    public boolean isSid() {
+        return sid;
+    }
+
+    /**
+     * @param sid the sid to set
+     */
+    public void setSid(boolean sid) {
+        this.sid = sid;
+    }
+
+    /**
+     * @return the serviceName
+     */
+    public boolean isServiceName() {
+        return serviceName;
+    }
+
+    /**
+     * @param serviceName the serviceName to set
+     */
+    public void setServiceName(boolean serviceName) {
+        this.serviceName = serviceName;
     }
     
     

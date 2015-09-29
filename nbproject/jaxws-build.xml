@@ -16,23 +16,6 @@
             <classpath path="${libs.jaxws21.classpath}"/>
         </taskdef>
     </target>
-    <target name="wsimport-client-cloudAutorizarComprobante_1" depends="wsimport-init">
-        <mkdir dir="${build.generated.dir}/jax-wsCache/cloudAutorizarComprobante_1"/>
-        <property name="wsdl-cloudAutorizarComprobante_1" location="xml-resources/web-service-references/cloudAutorizarComprobante_1/wsdl/infacttest.azurewebsites.net/Services/cloudAutorizarComprobante.svc.wsdl"/>
-        <wsimport sourcedestdir="${build.generated.dir}/jax-wsCache/cloudAutorizarComprobante_1" destdir="${build.generated.dir}/jax-wsCache/cloudAutorizarComprobante_1" wsdl="${wsdl-cloudAutorizarComprobante_1}" catalog="catalog.xml" encoding="${source.encoding}" extension="true" verbose="true" fork="false" wsdlLocation="http://infacttest.azurewebsites.net/Services/cloudAutorizarComprobante.svc?wsdl" xnocompile="true" xendorsed="true" package="fedaemon.infact.pruebas">
-            <depends file="${wsdl-cloudAutorizarComprobante_1}"/>
-            <produces dir="${build.generated.dir}/jax-wsCache/cloudAutorizarComprobante_1"/>
-        </wsimport>
-        <copy todir="${build.generated.sources.dir}/jax-ws">
-            <fileset dir="${build.generated.dir}/jax-wsCache/cloudAutorizarComprobante_1">
-                <include name="**/*.java"/>
-            </fileset>
-        </copy>
-    </target>
-    <target name="wsimport-client-clean-cloudAutorizarComprobante_1" depends="-init-project">
-        <delete dir="${build.generated.dir}/jax-wsCache/cloudAutorizarComprobante_1"/>
-        <delete dir="${build.generated.sources.dir}/jax-ws/fedaemon/infact/pruebas"/>
-    </target>
     <target name="wsimport-client-cloudAutorizarComprobante" depends="wsimport-init">
         <mkdir dir="${build.generated.dir}/jax-wsCache/cloudAutorizarComprobante"/>
         <property name="wsdl-cloudAutorizarComprobante" location="xml-resources/web-service-references/cloudAutorizarComprobante/wsdl/tevcol.azurewebsites.net/Services/cloudAutorizarComprobante.svc.wsdl"/>
@@ -50,5 +33,5 @@
         <delete dir="${build.generated.dir}/jax-wsCache/cloudAutorizarComprobante"/>
         <delete dir="${build.generated.sources.dir}/jax-ws/fedaemon/infact/produccion"/>
     </target>
-    <target name="wsimport-client-generate" depends="wsimport-client-cloudAutorizarComprobante_1, wsimport-client-cloudAutorizarComprobante"/>
+    <target name="wsimport-client-generate" depends="wsimport-client-cloudAutorizarComprobante"/>
 </project>

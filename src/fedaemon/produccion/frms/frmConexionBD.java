@@ -4,11 +4,11 @@
  * Created on 19/01/2015, 09:10 AM
  */
 
-package fedaemon.frms;
+package fedaemon.produccion.frms;
 
-import fedaemon.util.ConexionBD;
-import fedaemon.util.Empresa;
-import fedaemon.util.Servicio;
+import fedaemon.produccion.util.ConexionBD;
+import fedaemon.produccion.util.Empresa;
+import fedaemon.produccion.util.Servicio;
 import java.awt.Image;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
@@ -33,46 +33,50 @@ public final class frmConexionBD extends javax.swing.JFrame {
     public void ejecutarForm()
     {
          System.out.println(this.getTitle()); 
-             try{
-                conexionBD=new ConexionBD(this.getEmpresa().getUsuario()
-                        ,this.getEmpresa().getPasword()
-                        ,this.getEmpresa().getServidor()
-                        ,this.getEmpresa().getBase());
-                conexionBD.conectar();
-                    System.out.println("CONEXION EXITOSA");
-//                    JOptionPane.showMessageDialog(this,"conexionBD EXITOSA");
-                conexionBD.desconectar();
-                    //creo la pantalla de inicio de sesion
-                    frmMonitor PIS=new frmMonitor();
-                    PIS.setConexion(conexionBD);
-                    PIS.setServicio(servicio);
-                    PIS.setVisible(true);
-                    PIS.lanzarHilos();
+         try{
+            conexionBD=new ConexionBD(this.getEmpresa().getUsuario()
+                    ,this.getEmpresa().getPasword()
+                    ,this.getEmpresa().getServidor()
+                    ,this.getEmpresa().getBase()
+                    ,this.getEmpresa().isSid()
+                    ,this.getEmpresa().isServiceName());
+            conexionBD.conectar();
+            System.out.println("CONEXION EXITOSA");
+            conexionBD.desconectar();
+                //creo la pantalla de monitoreo
+                frmMonitor PIS=new frmMonitor();
+                PIS.setConexion(conexionBD);
+                PIS.setServicio(servicio);
+                PIS.setVisible(true);
+                PIS.lanzarHilos();
 
 //                    this.dispose();
-                    mostrarNotificacion();
-             }
-           catch(SQLException | ClassNotFoundException e){
-               System.out.println("[error] - NO SE PUDO ESTABLECER CONEXION CON EL SERVIDOR DE LA BASE");
-               JOptionPane.showMessageDialog(this,"CONEXION FALLIDA\n"+e.getMessage());
-               
-           }
-             finally{}
+                mostrarNotificacion();
+         }
+        catch(SQLException | ClassNotFoundException e)
+        {
+           System.out.println("[error] - NO SE PUDO ESTABLECER CONEXION CON EL SERVIDOR DE LA BASE");
+           JOptionPane.showMessageDialog(this,"CONEXION FALLIDA\n"+e.getMessage());
+        }
+        finally
+        {
+             System.out.println("[info] - continuando...");
+        }
     
     }
 
     public static void mostrarNotificacion(){
     try{
-        TrayIcon icono = new TrayIcon(getImagen(),"FEDaemon - TEVCOL",crearMenu());
+        TrayIcon icono = new TrayIcon(getImagen(),"FEDaemon",crearMenu());
         SystemTray.getSystemTray().add(icono);
 //        Thread.sleep(5000);
         
-        icono.displayMessage("FEDaemon - TEVCOL", "Ejecutando hilos de proceso", TrayIcon.MessageType.INFO);
+        icono.displayMessage("FEDaemon", "Ejecutando hilos de proceso", TrayIcon.MessageType.INFO);
     }catch(Exception ex){ex.printStackTrace();}
     }
     
     public static Image getImagen() {
-        Image retValue = Toolkit.getDefaultToolkit().getImage("/fedaemonfinal/img/icono-tevcol-16x16.png");
+        Image retValue = Toolkit.getDefaultToolkit().getImage("/fedaemon/img/icono-tevcol-16x16.png");
         return retValue;
     }
     
@@ -116,7 +120,7 @@ public final class frmConexionBD extends javax.swing.JFrame {
         jLabel5 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setTitle("Conexión a la base de datos - TEVCOL");
+        setTitle("Ambiente - PRODUCCION - Conexión a la base de datos - TEVCOL");
         setIconImage(getIconImage());
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
@@ -193,7 +197,7 @@ public final class frmConexionBD extends javax.swing.JFrame {
 
         if(usr.length()>0&&pass.length()>0&&server.length()>0&&base.length()>0)
              try{
-                conexionBD=new ConexionBD(usr,pass,server,base);
+                conexionBD=new ConexionBD(usr,pass,server,base,true,false);
                 conexionBD.conectar();
                     System.out.println("CONEXION EXITOSA");
                     JOptionPane.showMessageDialog(this,"CONEXION EXITOSA");

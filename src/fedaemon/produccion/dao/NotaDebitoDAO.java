@@ -1,8 +1,8 @@
 
-package fedaemon.dao;
+package fedaemon.produccion.dao;
 
 
-import fedaemon.frms.frmMonitor;
+import fedaemon.produccion.frms.frmMonitor;
 import fedaemon.infact.produccion.ArrayOfImpuesto;
 import fedaemon.infact.produccion.ArrayOfInfoAdicional;
 import fedaemon.infact.produccion.ArrayOfMotivo;
@@ -16,8 +16,8 @@ import fedaemon.infact.produccion.InfoTributaria;
 import fedaemon.infact.produccion.Motivo;
 import fedaemon.infact.produccion.ObjectFactory;
 import fedaemon.infact.produccion.Response;
-import fedaemon.util.ConexionBD;
-import fedaemon.util.InfoDocumento;
+import fedaemon.produccion.util.ConexionBD;
+import fedaemon.produccion.util.InfoDocumento;
 import java.io.File;
 import java.math.BigDecimal;
 import java.net.InetAddress;
@@ -27,7 +27,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import javax.xml.bind.JAXBContext;
@@ -43,23 +42,59 @@ import javax.xml.namespace.QName;
  */
 public final class NotaDebitoDAO {
     
-     protected frmMonitor frmMonitor;
+    private frmMonitor frmMonitor;
     
-          
-    public int consultarNotasDebitoPendientes(ConexionBD con,String coddoc) {
+    public int consultarNotaDebitoPendiente(ConexionBD con){
         int result=0;
-        String sentencia="{call SP_FACTCONSULTAPENDIENTES(?,?)}";
+        String select="SELECT COUNT(*) "
+                + "FROM INVE_NCND_FE_DAT "
+                + "WHERE CODDOC='05' "
+                + "AND NUME_AUTO_INVE_DOCU IS NULL "
+                + "AND AMBIENTE="+frmMonitor.getServicio().getAmbiente()
+                + " GROUP BY ESTAB,PTOEMI,SECUENCIAL";
+        ResultSet rs=null;
+        Statement st=null;
+        try
+        {
+            st= con.getCon().createStatement();
+            rs=st.executeQuery(select);
+            while(rs.next())
+            {
+               result++;
+            }
+        }
+        catch(SQLException ex){System.out.println("[error] - error de ResultSet de consultaNotasDebitoPendientes");}
+        finally
+        {
+            
+          try
+          {
+             if(rs!=null)
+                rs.close();
+          }catch(SQLException se2)
+          {
+              System.out.println("[error] - error de cerrar ResultSet de consultaNotasDebitoPendientes");
+          } 
+        }
+
+        return result;
+    }
+    
+    public int consultarNotaDebitoPendiente(ConexionBD con,String coddoc,String ambiente) {
+        int result=0;
+        String sentencia="{call SP_FACTCONSULTAPENDIENTES(?,?,?)}";
         CallableStatement cs=null;
         try
         {
             cs=con.getCon().prepareCall(sentencia);
 
             cs.setString(1, coddoc);
-            cs.registerOutParameter(2, java.sql.Types.NUMERIC);
+            cs.setString(2,ambiente);
+            cs.registerOutParameter(3, java.sql.Types.NUMERIC);
 
             cs.execute();
 
-            result=cs.getInt(2);
+            result=cs.getInt(3);
         }
         catch(SQLException ex){ex.printStackTrace();}
         finally
@@ -77,7 +112,7 @@ public final class NotaDebitoDAO {
     
     }
      
-     public int enviarNotasDebito(ConexionBD con){
+    public int enviarNotasDebito(ConexionBD con){
         
         int enviadas=0;
         ObjectFactory factory = null;
@@ -85,9 +120,10 @@ public final class NotaDebitoDAO {
         //OJO que al consultar data de la base se recuperará info como estaba hasta el ultimo COMMIT ejecutado
         String select="SELECT COUNT(*) LINEAS,TOTALSINIMPUESTO,DESCUENTO,VALORMODIFICACION,ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "FROM INVE_NCND_FE_DAT "
-                + "WHERE CODDOC='05' AND NUME_AUTO_INVE_DOCU IS NULL AND AMBIENTE=2 "
-//                + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101'"
-                + "GROUP BY TOTALSINIMPUESTO,DESCUENTO,VALORMODIFICACION,ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
+                + "WHERE CODDOC='05' "
+                + "AND NUME_AUTO_INVE_DOCU IS NULL "
+                + "AND AMBIENTE="+frmMonitor.getServicio().getAmbiente()
+                + " GROUP BY TOTALSINIMPUESTO,DESCUENTO,VALORMODIFICACION,ESTAB,PTOEMI,SECUENCIAL,FECHAEMISION "
                 + "ORDER BY FECHAEMISION ASC,SECUENCIAL ASC";
         Statement st=null;
         ResultSet rs=null;
@@ -396,7 +432,7 @@ public final class NotaDebitoDAO {
         return enviadas;
     }
 
-     public void generarXML(AutorizarNotaDebito autoriza,String estab,String ptoEmi,String secuencial){
+    public void generarXML(AutorizarNotaDebito autoriza,String estab,String ptoEmi,String secuencial){
 
                 Marshaller m=null;
                 String rutaXml;
@@ -423,13 +459,15 @@ public final class NotaDebitoDAO {
                 finally{}
      }
      
-     private int actualizarND(ConexionBD con,Response resp,InfoTributaria info) {
+    private int actualizarND(ConexionBD con,Response resp,InfoTributaria info) {
 
          int result=0;
          String update="UPDATE INVE_NCND_FE_DAT SET NUME_AUTO_INVE_DOCU=? "
-                 +" WHERE CODDOC='05' AND AMBIENTE=2 "
-//                 + "AND CODI_ADMI_EMPR_FINA='00001' AND CODI_ADMI_PUNT_VENT='101' "
-                 + "AND ESTAB="+info.getEstab()+" AND PTOEMI="+info.getPtoEmi()+" AND SECUENCIAL="+info.getSecuencial();
+                 +" WHERE CODDOC='05' "
+                 + "AND AMBIENTE="+frmMonitor.getServicio().getAmbiente()
+                 + " AND ESTAB="+info.getEstab()
+                 +" AND PTOEMI="+info.getPtoEmi()
+                 +" AND SECUENCIAL="+info.getSecuencial();
          PreparedStatement ps=null;
          try
          {
@@ -457,7 +495,7 @@ public final class NotaDebitoDAO {
          return result;
      }
      
-     private int notificarResultado(ConexionBD con,Response resp,InfoTributaria info,String ts){
+    private int notificarResultado(ConexionBD con,Response resp,InfoTributaria info,String ts){
         
         int n=0;
         String insert="INSERT INTO INVE_LOG_FE_DAT(COD_DOC,NUM_DOC,NUM_AUTORIZACION,CLAVE_ACCESO,MENSAJE_DEVUELTO,TIEMPO_RESPUESTA,AMBIENTE)"+
@@ -506,7 +544,7 @@ public final class NotaDebitoDAO {
         return n;
     }
      
-     private int notificarError(ConexionBD con, String ex,InfoTributaria info,String ts)throws SQLException{
+    private int notificarError(ConexionBD con, String ex,InfoTributaria info,String ts)throws SQLException{
     String insert="INSERT INTO INVE_LOG_FE_DAT(COD_DOC,NUM_DOC,MENSAJE_DEVUELTO,TIEMPO_RESPUESTA,AMBIENTE)"+
             "VALUES(?,?,?,?,?)";
         PreparedStatement ps=con.getCon().prepareStatement(insert);
@@ -523,27 +561,45 @@ public final class NotaDebitoDAO {
 
     }
      
-     public int cambiaEstado(ConexionBD con,String estado,int atendiendo)throws SQLException, UnknownHostException{
+    public int cambiaEstado(ConexionBD con,String estado,int atendiendo){
     
+        int result=0;
         String update="UPDATE INVE_INFO_FE_DAT SET ESTATUS=?,USUARIO_ACT=?,ULT_EJECUCION=?,HOST_ACT=?,ATENDIENDO=? WHERE NOMBRE='HILO NOTAS DEBITO'";
-        
-        PreparedStatement ps = con.getCon().prepareStatement(update);
-        ps.setString(1, estado);
-        ps.setString(2, System.getProperty("user.name"));
-        
-        Calendar calendar = Calendar.getInstance();
-        java.util.Date now = calendar.getTime();
-//        String cad=now.getYear()+"/"+now.getMonth()+"/"+now.getDay();
-        SimpleDateFormat f=new SimpleDateFormat("dd/MM/yyyy");
-//        System.out.println(f.format(now));
-        
-        ps.setDate(3,new java.sql.Date(now.getYear(), now.getMonth(), now.getDay()));
-        InetAddress localHost = InetAddress.getLocalHost();
-        ps.setString(4,localHost.getHostName());
-        ps.setInt(5, atendiendo);
-        
-        int result=ps.executeUpdate();
-        ps.close();
+        PreparedStatement ps =null;
+        InetAddress localHost=null;
+        try
+        {
+            ps = con.getCon().prepareStatement(update);
+            ps.setString(1, estado);
+            ps.setString(2, System.getProperty("user.name"));
+            java.util.Date now = new java.util.Date();
+            ps.setDate(3,new java.sql.Date(now.getTime()));
+            localHost = InetAddress.getLocalHost();
+            ps.setString(4,localHost.getHostName());
+            ps.setInt(5, atendiendo);
+
+            result=ps.executeUpdate();
+        }
+        catch(SQLException sqle)
+        {
+            System.out.println("[error] - Error al actualizar estado del proceso");
+        }
+        catch(UnknownHostException uhe)
+        {
+            System.out.println("[error] - Error al recuperar InetAddress");
+        }
+        finally
+        {
+            if(ps!=null)
+            {
+                try
+                {
+                    ps.close();
+                }
+                catch(SQLException e){
+                System.out.println("[error] - Error al cerrar PreparedStatement");}
+            }
+        }
     return result;
     }
 

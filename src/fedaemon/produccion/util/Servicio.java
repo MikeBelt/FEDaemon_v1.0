@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package fedaemon.util;
+package fedaemon.produccion.util;
 
 /**
  *
@@ -22,6 +22,7 @@ public final class Servicio {
     private String directorioRetenciones;
     private String directorioNotasCredito;
     private String directorioNotasDebito;
+    private long tiempoEspera;
 
     public Servicio(){}
     
@@ -164,6 +165,20 @@ public final class Servicio {
      */
     public void setDirectorioNotasDebito(String directorioNotasDebito) {
         this.directorioNotasDebito = directorioNotasDebito;
+    }
+
+    /**
+     * @return the tiempoEspera
+     */
+    public long getTiempoEspera() {
+        return tiempoEspera;
+    }
+
+    /**
+     * @param tiempoEspera the tiempoEspera to set
+     */
+    public void setTiempoEspera(long tiempoEspera) {
+        this.tiempoEspera = tiempoEspera;
     }
     
 }

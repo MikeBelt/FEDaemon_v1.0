@@ -1,16 +1,16 @@
 
 
-package fedaemon.util;
+package fedaemon.produccion.util;
 
-import fedaemon.frms.frmConexionBD;
+import fedaemon.produccion.frms.frmConexionBD;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 
 /**
  *
- * @author Mike
+ * @author Michael Beltrán
  */
-public final class FEDaemonFINAL {
+public final class FEDaemon {
 
     /**
      * @param args the command line arguments
@@ -29,9 +29,11 @@ public final class FEDaemonFINAL {
         empresaTevcol=new Empresa();
         empresaTevcol.setNombre("TEVCOL");
         empresaTevcol.setServidor("192.168.1.18");
-        empresaTevcol.setBase("GLTEVCOL");
+        empresaTevcol.setBase("GLTEVRAC");
         empresaTevcol.setUsuario("SISTEMAS");
         empresaTevcol.setPasword("SISTEMAS2015FE");
+        empresaTevcol.setSid(false);
+        empresaTevcol.setServiceName(true);
         
         servicioTevcol=new Servicio();
         servicioTevcol.setAmbiente("2");
@@ -39,6 +41,7 @@ public final class FEDaemonFINAL {
         servicioTevcol.setSo(System.getProperty("os.name"));
         servicioTevcol.setArquitectura(System.getProperty("os.arch"));
         servicioTevcol.setPid(pid());
+        servicioTevcol.setTiempoEspera(60000);
         
         crearDirectoriosTevcol();
         
@@ -53,6 +56,8 @@ public final class FEDaemonFINAL {
         empresaTevsur.setBase("GLTEVSUR");
         empresaTevsur.setUsuario("SISTEMAS");
         empresaTevsur.setPasword("TEVSUR");
+        empresaTevsur.setSid(true);
+        empresaTevsur.setServiceName(false);
         
         servicioTevsur=new Servicio();
         servicioTevsur.setAmbiente("2");
@@ -60,6 +65,7 @@ public final class FEDaemonFINAL {
         servicioTevsur.setSo(System.getProperty("os.name"));
         servicioTevsur.setArquitectura(System.getProperty("os.arch"));
         servicioTevsur.setPid(pid());
+        servicioTevsur.setTiempoEspera(60000);
         
         crearDirectoriosTevsur();
         

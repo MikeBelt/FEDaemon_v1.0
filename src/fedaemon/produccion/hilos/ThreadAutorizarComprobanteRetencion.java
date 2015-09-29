@@ -1,29 +1,29 @@
 
-package fedaemon.hilos;
+package fedaemon.produccion.hilos;
 
-import fedaemon.util.ConexionBD;
-import fedaemon.dao.RetencionDAO;
-import fedaemon.frms.frmMonitor;
+import fedaemon.produccion.util.ConexionBD;
+import fedaemon.produccion.dao.ComprobanteRetencionDAO;
+import fedaemon.produccion.frms.frmMonitor;
 import java.sql.SQLException;
 
 /**
  *
  * @author Mike
  */
-public final class ThreadAutorizarComprobantesRetencion extends Thread{
+public final class ThreadAutorizarComprobanteRetencion extends Thread{
     
     protected ConexionBD conexionBD;
     protected frmMonitor frmMonitor;
-    public RetencionDAO retencionDAO;
+    public ComprobanteRetencionDAO retencionDAO;
     
     @Override
     public void run(){
-//    ConexionBD conexionBD=new ConexionBD("inter","INTER2014","192.168.1.245","GLTEVCOL");
-//    ConexionBD conexionBD=new ConexionBD("sistemas","tevsur","192.168.15.200","GLTEVSUR");
+
        int enviadas=0;
        int contar=0;
-       ConexionBD con=new ConexionBD(conexionBD.getUsr(),conexionBD.getPass(),conexionBD.getServer(),conexionBD.getBase());
-       retencionDAO=new RetencionDAO();
+       long minutos=0;
+       ConexionBD con=new ConexionBD(conexionBD.getUsr(),conexionBD.getPass(),conexionBD.getServer(),conexionBD.getBase(),conexionBD.isSid(),conexionBD.isServiceName());
+       retencionDAO=new ComprobanteRetencionDAO();
        retencionDAO.setMonitor(frmMonitor);
     
         System.out.println("[info] - Iniciando hilo para autorización de Retenciones... ");
@@ -44,7 +44,8 @@ public final class ThreadAutorizarComprobantesRetencion extends Thread{
                 System.out.println("[info] - Verificando Comprobantes de Retención pendientes de autorización...");
                 this.frmMonitor.setMensajeRetenciones("[info] - Verificando Comprobantes de Retención pendientes de autorización...");
         
-                contar=retencionDAO.consultarRetencionPendientes(con,"07",frmMonitor.getServicio().getAmbiente());
+                contar=retencionDAO.consultarRetencionPendiente(con);
+//                contar=retencionDAO.consultarRetencionPendiente(con,"07",frmMonitor.getServicio().getAmbiente());
                 retencionDAO.cambiaEstado(con, "EJECUTANDO", contar);
                 
                 if(contar==0)
@@ -96,13 +97,14 @@ public final class ThreadAutorizarComprobantesRetencion extends Thread{
                 }
             }
         
-            try{
-
-                System.out.println("[info] - Pausando el Hilo Retenciones por 5 minuto(s)");
-                this.frmMonitor.setMensajeRetenciones("[info] - Pausando el Hilo Retenciones por 5 minuto(s)");
-
-                this.sleep(300000);
+            try
+            {
+                minutos=frmMonitor.getServicio().getTiempoEspera()/60000;
+                System.out.println("[info] - Pausando el Hilo Retenciones por "+minutos+" minuto(s)");
+                this.frmMonitor.setMensajeRetenciones("[info] - Pausando el Hilo Retenciones por "+minutos+" minuto(s)");
                 this.frmMonitor.cambiaEstadoPanel("jPRetencion", "Retenciones [EN ESPERA]");
+                this.sleep(frmMonitor.getServicio().getTiempoEspera());
+                
             } 
             catch (Exception ex)
             {
