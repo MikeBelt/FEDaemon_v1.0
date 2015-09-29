@@ -188,7 +188,7 @@
     <Component class="javax.swing.JLabel" name="jLabel5">
       <Properties>
         <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-          <Image iconType="3" name="/fedaemonfinal/img/icono-tevcol.png"/>
+          <Image iconType="3" name="/fedaemon/produccion/img/icono-tevcol.png"/>
         </Property>
       </Properties>
       <Constraints>
