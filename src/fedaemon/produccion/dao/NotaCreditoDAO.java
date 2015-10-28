@@ -382,6 +382,9 @@ public final class NotaCreditoDAO {
                 //Enviar documento empaquetado al webservice de SRI para autorizar
                 for(int i=0;i<arrayAutorizarNotaCredito.size();i++){
 
+                    System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayAutorizarNotaCredito.size());
+                    this.frmMonitor.setMensajeNC("[info] - Registro #"+(i+1)+ " de "+arrayAutorizarNotaCredito.size());
+            
                     System.out.println("[info] - No. Lineas : "+arrayInfoDoc.get(i).getLineas());
                     this.frmMonitor.setMensajeNC("[info] - No. Líneas : "+arrayInfoDoc.get(i).getLineas());
                     System.out.println("[info] - Enviando petición de autorización al WS...");

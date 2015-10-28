@@ -362,7 +362,9 @@ public final class NotaDebitoDAO {
             //Enviar documento empaquetado al webservice de SRI para autorizar
             for(int i=0;i<arrayAutorizarNotaDebito.size();i++){
                 
-//              
+                System.out.println("[info] - Registro #"+(i+1)+ " de "+arrayAutorizarNotaDebito.size());
+                this.frmMonitor.setMensajeND("[info] - Registro #"+(i+1)+ " de "+arrayAutorizarNotaDebito.size());
+            
                 this.frmMonitor.setMensajeND("[info] - No. Lineas : "+arrayInfoDoc.get(i).getLineas());
                 System.out.println("[info] - Enviando petición de autorización al WS...");
                 this.frmMonitor.setMensajeND("[info] - Enviando petición de autorización al WS...");
