@@ -422,7 +422,7 @@ public final class ComprobanteRetencionDAO {
         jaxb_context=JAXBContext.newInstance(AutorizarComprobanteRetencion.class);
         m=jaxb_context.createMarshaller();
         m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT,true);
-        rutaXml=this.frmMonitor.getServicio().getDirectorioNotasDebito()+"AutorizarComprobanteRetencion"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
+        rutaXml=this.frmMonitor.getServicio().getDirectorioRetenciones()+"AutorizarComprobanteRetencion"+estab+"-"+ptoEmi+"-"+secuencial+".xml";
         m.marshal(jaxb_autoriza, new File (rutaXml));
 
         System.out.println("[info] - xml generado "+rutaXml);  
