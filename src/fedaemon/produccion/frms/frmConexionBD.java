@@ -13,16 +13,22 @@ import java.awt.Image;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
 import java.awt.SystemTray;
-import java.awt.Toolkit;
 import java.awt.TrayIcon;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
+import java.net.URL;
 import java.sql.SQLException;
+import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 
 public final class frmConexionBD extends javax.swing.JFrame {
 
+    private ConexionBD conexionBD;
+    private Empresa empresa;
+    private Servicio servicio;
+
+     
     /** Creates new form PantallaConexionBD */
     public frmConexionBD() {
         initComponents();
@@ -51,7 +57,8 @@ public final class frmConexionBD extends javax.swing.JFrame {
                 PIS.lanzarHilos();
 
 //                    this.dispose();
-                mostrarNotificacion();
+                
+                mostrarNotificacion(this.getEmpresa());
          }
         catch(SQLException | ClassNotFoundException e)
         {
@@ -65,19 +72,27 @@ public final class frmConexionBD extends javax.swing.JFrame {
     
     }
 
-    public static void mostrarNotificacion(){
+    public static void mostrarNotificacion(Empresa empresa){
     try{
-        TrayIcon icono = new TrayIcon(getImagen(),"FEDaemon",crearMenu());
-        SystemTray.getSystemTray().add(icono);
-//        Thread.sleep(5000);
+        TrayIcon icono =new TrayIcon(getImagen(),"FEDaemon v1.0",crearMenu());
+                
         
-        icono.displayMessage("FEDaemon", "Ejecutando hilos de proceso", TrayIcon.MessageType.INFO);
+        SystemTray.getSystemTray().add(icono);
+
+        
+        icono.displayMessage("FEDaemon v1.0"
+                ,"Ejecutando hilos de proceso para "+empresa.getNombre()
+                , TrayIcon.MessageType.INFO);
     }catch(Exception ex){ex.printStackTrace();}
     }
     
     public static Image getImagen() {
-        Image retValue = Toolkit.getDefaultToolkit().getImage("/fedaemon/img/icono-tevcol-16x16.png");
-        return retValue;
+//        Image retValue = 
+//                Toolkit.getDefaultToolkit().getImage("/fedaemon/produccion/img/icono-tevcol-16x16.png");
+        
+        URL imageURL=frmConexionBD.class.getResource("/fedaemon/produccion/img/icono-tevcol-16x16.png");
+        return (new ImageIcon(imageURL,"FEDaemon - TrayIcon")).getImage();
+//                return retValue;
     }
     
 //     @Override
@@ -274,9 +289,7 @@ public final class frmConexionBD extends javax.swing.JFrame {
     }
 
 
-     private ConexionBD conexionBD;
-     private Empresa empresa;
-     private Servicio servicio;
+     
      
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
