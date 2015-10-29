@@ -2,7 +2,7 @@
 
 package fedaemon.produccion.frms;
 
-import fedaemon.produccion.hilos.ThreadAutorizarComprobanteRetencion;
+import fedaemon.produccion.hilos.ThreadAutorizarRetencion;
 import fedaemon.produccion.hilos.ThreadAutorizarFactura;
 import fedaemon.produccion.hilos.ThreadAutorizarNotaCredito;
 import fedaemon.produccion.hilos.ThreadAutorizarNotaDebito;
@@ -107,7 +107,7 @@ public final class frmMonitor extends javax.swing.JFrame {
     System.out.println("Iniciando el proceso demonio... ");
         
             threadAutorizarFacturas=new ThreadAutorizarFactura();
-            threadAutorizarRetenciones=new ThreadAutorizarComprobanteRetencion();
+            threadAutorizarRetenciones=new ThreadAutorizarRetencion();
             threadAutorizarNotaCredito=new ThreadAutorizarNotaCredito();
             threadAutorizarNotaDebito=new ThreadAutorizarNotaDebito(); 
             
@@ -379,7 +379,7 @@ public final class frmMonitor extends javax.swing.JFrame {
 
     private ConexionBD conexionBD;
     ThreadAutorizarFactura threadAutorizarFacturas;
-    ThreadAutorizarComprobanteRetencion threadAutorizarRetenciones;
+    ThreadAutorizarRetencion threadAutorizarRetenciones;
     ThreadAutorizarNotaCredito threadAutorizarNotaCredito;
     ThreadAutorizarNotaDebito threadAutorizarNotaDebito;
     private Servicio servicio;

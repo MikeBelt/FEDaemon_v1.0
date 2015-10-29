@@ -17,11 +17,12 @@ public final class FEDaemon {
      */
     
     private static Empresa empresaTevcol=null;
-    private static Empresa empresaTevsur=null;
     private static Servicio servicioTevcol=null;
-    private static Servicio servicioTevsur=null;
     private static frmConexionBD frmConexionTevcol=null;
-    private static frmConexionBD frmConexionTevsur=null;
+    
+//    private static Empresa empresaTevsur=null;
+//    private static Servicio servicioTevsur=null;
+//    private static frmConexionBD frmConexionTevsur=null;
     
     
     public static void main(String[] args) {
@@ -37,7 +38,7 @@ public final class FEDaemon {
         
         servicioTevcol=new Servicio();
         servicioTevcol.setAmbiente("2");
-        servicioTevcol.setVersion("2015.10.28");
+        servicioTevcol.setVersion("2015.10.29");
         servicioTevcol.setSo(System.getProperty("os.name"));
         servicioTevcol.setArquitectura(System.getProperty("os.arch"));
         servicioTevcol.setPid(pid());
@@ -50,29 +51,29 @@ public final class FEDaemon {
         frmConexionTevcol.setServicio(servicioTevcol);
         frmConexionTevcol.ejecutarForm();
         
-        empresaTevsur=new Empresa();
-        empresaTevsur.setNombre("TEVSUR");
-        empresaTevsur.setServidor("192.168.15.250");
-        empresaTevsur.setBase("GLTEVSUR");
-        empresaTevsur.setUsuario("SISTEMAS");
-        empresaTevsur.setPasword("TEVSUR");
-        empresaTevsur.setSid(true);
-        empresaTevsur.setServiceName(false);
-        
-        servicioTevsur=new Servicio();
-        servicioTevsur.setAmbiente("2");
-        servicioTevsur.setVersion("2015.10.28");
-        servicioTevsur.setSo(System.getProperty("os.name"));
-        servicioTevsur.setArquitectura(System.getProperty("os.arch"));
-        servicioTevsur.setPid(pid());
-        servicioTevsur.setTiempoEspera(60000);
-        
-        crearDirectoriosTevsur();
-        
-        frmConexionTevsur=new frmConexionBD();
-        frmConexionTevsur.setEmpresa(empresaTevsur);
-        frmConexionTevsur.setServicio(servicioTevsur);
-        frmConexionTevsur.ejecutarForm();
+//        empresaTevsur=new Empresa();
+//        empresaTevsur.setNombre("TEVSUR");
+//        empresaTevsur.setServidor("192.168.15.250");
+//        empresaTevsur.setBase("GLTEVSUR");
+//        empresaTevsur.setUsuario("SISTEMAS");
+//        empresaTevsur.setPasword("TEVSUR");
+//        empresaTevsur.setSid(true);
+//        empresaTevsur.setServiceName(false);
+//        
+//        servicioTevsur=new Servicio();
+//        servicioTevsur.setAmbiente("2");
+//        servicioTevsur.setVersion("2015.10.29");
+//        servicioTevsur.setSo(System.getProperty("os.name"));
+//        servicioTevsur.setArquitectura(System.getProperty("os.arch"));
+//        servicioTevsur.setPid(pid());
+//        servicioTevsur.setTiempoEspera(60000);
+//        
+//        crearDirectoriosTevsur();
+//        
+//        frmConexionTevsur=new frmConexionBD();
+//        frmConexionTevsur.setEmpresa(empresaTevsur);
+//        frmConexionTevsur.setServicio(servicioTevsur);
+//        frmConexionTevsur.ejecutarForm();
         
         
     }
@@ -169,94 +170,94 @@ public final class FEDaemon {
     }
     
     
-    private static void crearDirectoriosTevsur(){
-    //Sistema Operativo
-        System.out.println("Sistema Operativo: " + System.getProperty("os.name"));
-        //Arquitectura
-        System.out.println("Sobre arquitectura: " + System.getProperty("os.arch"));
-        //Version  
-        System.out.println("Versión " + System.getProperty("os.version"));
-    
-        if(System.getProperty("os.name").contains("Windows"))
-        {
-            String carpeta = "c:\\FEDaemonTEVSUR";
-            File acceso = new File(carpeta);
-                        
-            if (!acceso.exists()) 
-                acceso.mkdir();
-            servicioTevsur.setDirectorioRaiz(carpeta);
-            
-            
-            carpeta = "c:\\FEDaemonTEVSUR\\Facturas";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            servicioTevsur.setDirectorioFacturas(carpeta+"\\");
-            
-            carpeta = "c:\\FEDaemonTEVSUR\\Retenciones";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            servicioTevsur.setDirectorioRetenciones(carpeta+"\\");
-            
-            carpeta = "c:\\FEDaemonTEVSUR\\NC";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            servicioTevsur.setDirectorioNotasCredito(carpeta+"\\");
-            
-            carpeta = "c:\\FEDaemonTEVSUR\\ND";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            servicioTevsur.setDirectorioNotasDebito(carpeta+"\\");
-            
-            
-        }
-        if(System.getProperty("os.name").contains("Linux"))
-        {
-            String carpeta = "FEDaemonTEVSUR";
-            File acceso = new File(carpeta);
-            
-            if (!acceso.exists()) 
-                acceso.mkdir();
-            servicioTevsur.setDirectorioRaiz(carpeta);
-            
-            carpeta = "FEDaemonTEVSUR/Facturas";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            servicioTevsur.setDirectorioFacturas(carpeta+"/");
-            
-            carpeta = "FEDaemonTEVSUR/Retenciones";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            servicioTevsur.setDirectorioRetenciones(carpeta+"/");
-            
-            carpeta = "FEDaemonTEVSUR/NC";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            servicioTevsur.setDirectorioNotasCredito(carpeta+"/");
-            
-            carpeta = "FEDaemonTEVSUR/ND";
-            acceso = new File(carpeta);
-            if (!acceso.exists()) {
-                acceso.mkdir();
-            }
-            servicioTevsur.setDirectorioNotasDebito(carpeta+"/");
-
-        }
-    }
-    
+//    private static void crearDirectoriosTevsur(){
+//    //Sistema Operativo
+//        System.out.println("Sistema Operativo: " + System.getProperty("os.name"));
+//        //Arquitectura
+//        System.out.println("Sobre arquitectura: " + System.getProperty("os.arch"));
+//        //Version  
+//        System.out.println("Versión " + System.getProperty("os.version"));
+//    
+//        if(System.getProperty("os.name").contains("Windows"))
+//        {
+//            String carpeta = "c:\\FEDaemonTEVSUR";
+//            File acceso = new File(carpeta);
+//                        
+//            if (!acceso.exists()) 
+//                acceso.mkdir();
+//            servicioTevsur.setDirectorioRaiz(carpeta);
+//            
+//            
+//            carpeta = "c:\\FEDaemonTEVSUR\\Facturas";
+//            acceso = new File(carpeta);
+//            if (!acceso.exists()) {
+//                acceso.mkdir();
+//            }
+//            servicioTevsur.setDirectorioFacturas(carpeta+"\\");
+//            
+//            carpeta = "c:\\FEDaemonTEVSUR\\Retenciones";
+//            acceso = new File(carpeta);
+//            if (!acceso.exists()) {
+//                acceso.mkdir();
+//            }
+//            servicioTevsur.setDirectorioRetenciones(carpeta+"\\");
+//            
+//            carpeta = "c:\\FEDaemonTEVSUR\\NC";
+//            acceso = new File(carpeta);
+//            if (!acceso.exists()) {
+//                acceso.mkdir();
+//            }
+//            servicioTevsur.setDirectorioNotasCredito(carpeta+"\\");
+//            
+//            carpeta = "c:\\FEDaemonTEVSUR\\ND";
+//            acceso = new File(carpeta);
+//            if (!acceso.exists()) {
+//                acceso.mkdir();
+//            }
+//            servicioTevsur.setDirectorioNotasDebito(carpeta+"\\");
+//            
+//            
+//        }
+//        if(System.getProperty("os.name").contains("Linux"))
+//        {
+//            String carpeta = "FEDaemonTEVSUR";
+//            File acceso = new File(carpeta);
+//            
+//            if (!acceso.exists()) 
+//                acceso.mkdir();
+//            servicioTevsur.setDirectorioRaiz(carpeta);
+//            
+//            carpeta = "FEDaemonTEVSUR/Facturas";
+//            acceso = new File(carpeta);
+//            if (!acceso.exists()) {
+//                acceso.mkdir();
+//            }
+//            servicioTevsur.setDirectorioFacturas(carpeta+"/");
+//            
+//            carpeta = "FEDaemonTEVSUR/Retenciones";
+//            acceso = new File(carpeta);
+//            if (!acceso.exists()) {
+//                acceso.mkdir();
+//            }
+//            servicioTevsur.setDirectorioRetenciones(carpeta+"/");
+//            
+//            carpeta = "FEDaemonTEVSUR/NC";
+//            acceso = new File(carpeta);
+//            if (!acceso.exists()) {
+//                acceso.mkdir();
+//            }
+//            servicioTevsur.setDirectorioNotasCredito(carpeta+"/");
+//            
+//            carpeta = "FEDaemonTEVSUR/ND";
+//            acceso = new File(carpeta);
+//            if (!acceso.exists()) {
+//                acceso.mkdir();
+//            }
+//            servicioTevsur.setDirectorioNotasDebito(carpeta+"/");
+//
+//        }
+//    }
+//    
     
     public static String pid() {
        String id = ManagementFactory.getRuntimeMXBean().getName();
