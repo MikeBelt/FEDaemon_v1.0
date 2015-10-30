@@ -27,6 +27,7 @@ public final class frmConexionBD extends javax.swing.JFrame {
     private ConexionBD conexionBD;
     private Empresa empresa;
     private Servicio servicio;
+    
 
      
     /** Creates new form PantallaConexionBD */
@@ -49,15 +50,13 @@ public final class frmConexionBD extends javax.swing.JFrame {
             conexionBD.conectar();
             System.out.println("CONEXION EXITOSA");
             conexionBD.desconectar();
-                //creo la pantalla de monitoreo
-                frmMonitor PIS=new frmMonitor();
-                PIS.setConexion(conexionBD);
-                PIS.setServicio(servicio);
-                PIS.setVisible(true);
-                PIS.lanzarHilos();
+                //creacion de la pantalla de monitoreo
+                frmMonitor frmMonitor=new frmMonitor();
+                frmMonitor.setConexion(conexionBD);
+                frmMonitor.setServicio(servicio);
+                frmMonitor.setVisible(true);
+                frmMonitor.lanzarHilos();
 
-//                    this.dispose();
-                
                 mostrarNotificacion(this.getEmpresa());
          }
         catch(SQLException | ClassNotFoundException e)
@@ -73,17 +72,40 @@ public final class frmConexionBD extends javax.swing.JFrame {
     }
 
     public static void mostrarNotificacion(Empresa empresa){
-    try{
-        TrayIcon icono =new TrayIcon(getImagen(),"FEDaemon v1.0",crearMenu());
-                
-        
-        SystemTray.getSystemTray().add(icono);
+        try
+        {
+            TrayIcon icono =new TrayIcon(getImagen()
+                    ,"FEDaemon v1.0 - "+empresa.getNombre()
+                    ,crearMenu());
 
-        
-        icono.displayMessage("FEDaemon v1.0"
-                ,"Ejecutando hilos de proceso para "+empresa.getNombre()
-                , TrayIcon.MessageType.INFO);
-    }catch(Exception ex){ex.printStackTrace();}
+            SystemTray.getSystemTray().add(icono);
+
+            icono.displayMessage("FEDaemon v1.0"
+                    ,"Autorización de Documentos Electrónicos para "+empresa.getNombre()
+                    , TrayIcon.MessageType.INFO);
+        }catch(Exception ex)
+        {ex.printStackTrace();}
+    }
+    
+    public static PopupMenu crearMenu(){
+        PopupMenu menu = new PopupMenu();
+        MenuItem salir = new MenuItem("Salir");
+        MenuItem monitor = new MenuItem("Monitor");
+        salir.addActionListener(new ActionListener(){
+            @Override
+            public void actionPerformed(ActionEvent e){
+                System.exit(0);
+            }
+        });
+//        monitor.addActionListener(new ActionListener(){
+//            @Override
+//            public void actionPerformed(ActionEvent e){
+//            frm.setVisible(true);
+//            }
+//        });
+        menu.add(salir);
+        menu.add(monitor);
+        return menu;
     }
     
     public static Image getImagen() {
@@ -101,21 +123,6 @@ public final class frmConexionBD extends javax.swing.JFrame {
 //        return retValue;
 //    }
     
-    public static PopupMenu crearMenu(){
-        PopupMenu menu = new PopupMenu();
-        MenuItem salir = new MenuItem("Salir");
-        MenuItem monitor = new MenuItem("Monitor");
-        salir.addActionListener(new ActionListener(){
-            @Override
-            public void actionPerformed(ActionEvent e){
-                System.exit(0);
-            }
-        });
-        menu.add(salir);
-        menu.add(monitor);
-        return menu;
-    }
-
    
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -135,7 +142,7 @@ public final class frmConexionBD extends javax.swing.JFrame {
         jLabel5 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setTitle("Ambiente - PRODUCCION - Conexión a la base de datos - TEVCOL");
+        setTitle("Ambiente - PRODUCCION - Conexión a la base de datos");
         setIconImage(getIconImage());
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 

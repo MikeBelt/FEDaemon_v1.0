@@ -406,7 +406,7 @@ public final class FacturaDAO {
             
             
             arrayAutorizarFactura.add(autorizar);
-            }//final del for
+            }//final del for de empaquetado
             
             start = 0;
             stop = 0;

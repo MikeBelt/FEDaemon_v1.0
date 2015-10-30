@@ -374,7 +374,7 @@ public final class NotaCreditoDAO {
                 generarXML(autoriza,arrayInfoDoc.get(i).getEstab(),arrayInfoDoc.get(i).getPtoEmi(),arrayInfoDoc.get(i).getSecuencial());
 
                 arrayAutorizarNotaCredito.add(autoriza);
-        }//final del for        
+        }//final del for de empaquetado       
                         
                 start=0;
                 stop = 0;

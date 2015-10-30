@@ -382,7 +382,7 @@ public final class RetencionDAO {
                     this.frmMonitor.setMensajeRetenciones("[info] - Actualizando registros...");
                     System.out.println("[info] - Actualizando registros...");
                     //llamada del metodo para actualizar registro
-                    int reg=actualizarRetencion(con, respuesta,info_t);
+                    int reg=actualizarRetencion(con, respuesta,arrayAutorizaComprobante.get(i).getInfoTributaria().getValue());
                     System.out.println("[info] - Registros actualizados : "+reg);
                     this.frmMonitor.setMensajeRetenciones("[info] - Registros actualizados : "+reg);
                      
@@ -390,7 +390,7 @@ public final class RetencionDAO {
                 this.frmMonitor.setMensajeRetenciones("[info] - Registrando en el log...");
                 System.out.println("[info] - Registrando en el log...");
                 //llamada del metodo para el registro del log
-                notificarResultado(con, respuesta,info_t,String.valueOf((stop-start)));
+                notificarResultado(con, respuesta,arrayAutorizaComprobante.get(i).getInfoTributaria().getValue(),String.valueOf((stop-start)));
                 this.frmMonitor.setMensajeRetenciones("[info] - Evento capturado en el historial");
                 System.out.println("[info] - Evento capturado en el historial"); 
 
