@@ -119,7 +119,7 @@ public final class frmConexionBD extends javax.swing.JFrame {
     
      @Override
     public Image getIconImage() {
-        URL imageURL=frmConexionBD.class.getResource("/fedaemon/produccion/img/icono-tevcol-16x16.png");
+        URL imageURL=frmConexionBD.class.getResource("/fedaemon/produccion/img/icono-tevcol.png");
         return (new ImageIcon(imageURL,"FEDaemon - TrayIcon")).getImage();
     }
     
