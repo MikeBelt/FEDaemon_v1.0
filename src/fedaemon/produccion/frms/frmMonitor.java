@@ -9,11 +9,14 @@ import fedaemon.produccion.hilos.ThreadAutorizarNotaDebito;
 import fedaemon.produccion.util.ConexionBD;
 import fedaemon.produccion.util.Servicio;
 import java.awt.Dimension;
+import java.awt.Image;
 import java.awt.Point;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.ImageIcon;
 
 /**
  *
@@ -30,6 +33,13 @@ public final class frmMonitor extends javax.swing.JFrame {
         this.setDefaultCloseOperation(0);
 
     }
+    
+    @Override
+    public Image getIconImage() {
+        URL imageURL=frmConexionBD.class.getResource("/fedaemon/produccion/img/icono-tevcol.png");
+        return (new ImageIcon(imageURL,"FEDaemon - TrayIcon")).getImage();
+    }
+    
     
     public void limpiaFacturas(){
     this.jTextArea1.setText(null);
@@ -157,6 +167,7 @@ public final class frmMonitor extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Autorización de Documentos Electrónicos FEDaemon v1.0");
+        setIconImage(getIconImage());
         setUndecorated(true);
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosed(java.awt.event.WindowEvent evt) {

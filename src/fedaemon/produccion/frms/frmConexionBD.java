@@ -117,11 +117,11 @@ public final class frmConexionBD extends javax.swing.JFrame {
 //                return retValue;
     }
     
-//     @Override
-//    public Image getIconImage() {
-//        Image retValue = Toolkit.getDefaultToolkit().getImage(ClassLoader.getSystemResource("img/icono-tevcol.png"));
-//        return retValue;
-//    }
+     @Override
+    public Image getIconImage() {
+        URL imageURL=frmConexionBD.class.getResource("/fedaemon/produccion/img/icono-tevcol-16x16.png");
+        return (new ImageIcon(imageURL,"FEDaemon - TrayIcon")).getImage();
+    }
     
    
     @SuppressWarnings("unchecked")
