@@ -240,7 +240,7 @@ public final class RetencionDAO {
                             InfoAdicional info_a3=new InfoAdicional();
                             nombre=factory.createInfoAdicionalNombre("DIRECCION");
                             info_a3.setNombre(nombre);
-                            text=factory.createInfoAdicionalText(rs.getString("DIRECCION").toUpperCase().trim());
+                            text=factory.createInfoAdicionalText(rs.getString("DIRECCION").toUpperCase().replace(".", " ").replace("(", " ").replace(")", " ").trim());
                             info_a3.setText((JAXBElement<String>) (text==null?"NO REGISTRADO":text));
                             
                             InfoAdicional info_a4=new InfoAdicional();

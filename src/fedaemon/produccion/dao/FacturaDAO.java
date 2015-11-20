@@ -277,6 +277,7 @@ public final class FacturaDAO {
                             obs=obs.replaceAll("-", " ");
 //                            obs=obs.replace("\",  "");
                             obs=obs.replace("/",  " ");
+                            obs=obs.replaceAll("#","No");
                         }
                         JAXBElement<String> text=factory.createInfoAdicionalText(obs);
                         info_a1.setText(text);
@@ -294,7 +295,7 @@ public final class FacturaDAO {
                             contacto=contacto.replace('Ó','O');
                             contacto=contacto.replace('Ú','U');
                             contacto=contacto.replace(".", "");
-                            contacto=contacto.replace("-", " O ");
+                            contacto=contacto.replace("-", " ");
                             
                         }
                         text=factory.createInfoAdicionalText(contacto);

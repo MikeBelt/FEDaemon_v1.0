@@ -187,8 +187,8 @@ public final class NotaCreditoDAO {
                         info_t.setMailCliente((JAXBElement<String>) (mailCliente==null?"":mailCliente));
                         JAXBElement<String> nombreComercial = factory.createInfoTributariaNombreComercial(rs.getString("NOMBRECOMERCIAL"));
                         info_t.setNombreComercial((JAXBElement<String>) (nombreComercial==null?" ":nombreComercial));
-                        JAXBElement<String> origen=factory.createInfoTributariaOrigen(rs.getString("ORIGEN"));
-                        info_t.setOrigen((JAXBElement<String>) (origen==null?"":origen));
+                        JAXBElement<String> origen=factory.createInfoTributariaOrigen(rs.getString("ORIGEN")==null?"NO REGISTRADO":rs.getString("ORIGEN"));
+                        info_t.setOrigen((JAXBElement<String>)origen);
                         info_t.setPtoEmi(rs.getString("PTOEMI"));
                         info_t.setRazonSocial(rs.getString("RAZONSOCIAL"));
                         info_t.setRuc(rs.getString("RUC"));
@@ -207,13 +207,13 @@ public final class NotaCreditoDAO {
                         info_nc.setIdentificacionComprador(rs.getString("IDENTIFICACIONCOMPRADOR"));
                         JAXBElement<String> moneda=factory.createInfoNotaCreditoMoneda(rs.getString("MONEDA"));
                         info_nc.setMoneda(moneda);
-                        info_nc.setMotivo(rs.getString("MOTIVO"));
+                        info_nc.setMotivo(rs.getString("MOTIVO").replace("#","No"));
                         info_nc.setNumDocModificado(rs.getString("NUMDOCMODIFICADO"));
                         JAXBElement<String> obligadoContabilidad=factory.createInfoNotaCreditoObligadoContabilidad(rs.getString("OBLIGADOCONTABILIDAD"));
                         info_nc.setObligadoContabilidad(obligadoContabilidad);
                         info_nc.setRazonSocialComprador(rs.getString("RAZONSOCIALCOMPRADOR"));
-                        JAXBElement<String> rise=factory.createInfoNotaCreditoRise(rs.getString("RISE"));
-                        info_nc.setRise((JAXBElement<String>) (rise==null?"":rise));
+                        JAXBElement<String> rise=factory.createInfoNotaCreditoRise(rs.getString("RISE")==null?"NO REGISTRADO":rs.getString("RISE"));
+                        info_nc.setRise((JAXBElement<String>) (rise));
                         info_nc.setTipoIdentificacionComprador(rs.getString("TIPOIDENTIFICACIONCOMPRADOR"));
                         
                         //============================ TOTAL DE IMPUESTO DE LA NC =================================
@@ -252,6 +252,7 @@ public final class NotaCreditoDAO {
                             observacion=observacion.replace("\n", "");
                             observacion=observacion.replace("Ñ", "N");
                             observacion=observacion.replace("ñ", "n");
+                            observacion=observacion.replaceAll("#","No");
                         }
                         JAXBElement<String> text=factory.createInfoAdicionalText(observacion);
                         info_a1.setText(text);
@@ -275,7 +276,7 @@ public final class NotaCreditoDAO {
                         InfoAdicional info_a3=new InfoAdicional();
                         nombre=factory.createInfoAdicionalNombre("DIRECCION");
                         info_a3.setNombre(nombre);
-                        text=factory.createInfoAdicionalText(rs.getString("DIRECCION").toUpperCase().trim());
+                        text=factory.createInfoAdicionalText(rs.getString("DIRECCION").toUpperCase().replace(".", " ").replace("(", " ").replace(")", " ").trim());
                         info_a3.setText((JAXBElement<String>) (text==null?"NO REGISTRADO":text));
 
                         InfoAdicional info_a4=new InfoAdicional();
@@ -299,7 +300,14 @@ public final class NotaCreditoDAO {
                         InfoAdicional info_a6=new InfoAdicional();
                         nombre=factory.createInfoAdicionalNombre("FONO_ESTAB");
                         info_a6.setNombre(nombre);
-                        text=factory.createInfoAdicionalText(rs.getString("FONO_ESTAB").trim());
+                        String fonoEstab=rs.getString("FONO_ESTAB")==null?"NO REGISTRADO":rs.getString("FONO_ESTAB").trim();
+                        if(fonoEstab!=null)
+                        {
+                            fonoEstab=fonoEstab.replace("(","");
+                            fonoEstab=fonoEstab.replace(")","");
+                            fonoEstab=fonoEstab.replaceAll("-","");
+                        }
+                        text=factory.createInfoAdicionalText(fonoEstab);
                         info_a6.setText((JAXBElement<String>) (text==null?"NO REGISTRADO":text));
 
 
@@ -323,7 +331,7 @@ public final class NotaCreditoDAO {
                     JAXBElement<String> codigoAdicional=factory.createDetalleNCCodigoAdicional(rs.getString("CODIGOADICIONAL"));
                     detalle.setCodigoAdicional(codigoAdicional);
                     detalle.setCodigoInterno(rs.getString("CODIGOINTERNO"));
-                    detalle.setDescripcion(rs.getString("DESCRIPCION"));
+                    detalle.setDescripcion(rs.getString("DESCRIPCION").replace("#", "No"));
                     detalle.setDescuento(BigDecimal.valueOf(rs.getDouble("DESCUENTO")));
 
                    //            detalle.setDetallesAdicionales(null);
@@ -490,8 +498,8 @@ public final class NotaCreditoDAO {
         int result=0;
         String update="UPDATE INVE_NCND_FE_DAT SET NUME_AUTO_INVE_DOCU=? "
                 + "WHERE CODDOC='04' "
-                + "AND AMBIENTE="+frmMonitor.getServicio().getAmbiente()
-                + "AND ESTAB="+info.getEstab()
+                +" AND AMBIENTE="+frmMonitor.getServicio().getAmbiente()
+                +" AND ESTAB="+info.getEstab()
                 +" AND PTOEMI="+info.getPtoEmi()
                 +" AND SECUENCIAL="+info.getSecuencial() ;
         PreparedStatement ps=null;
